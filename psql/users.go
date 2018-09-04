@@ -23,7 +23,10 @@ type User struct {
 
 // UserStore is used to interact with our user store.
 type UserStore struct {
-	sql *sql.DB
+	sql interface {
+		Exec(query string, args ...interface{}) (sql.Result, error)
+		QueryRow(query string, args ...interface{}) *sql.Row
+	}
 }
 
 // Find will retrieve a user with the provided ID or return ErrNotFount
