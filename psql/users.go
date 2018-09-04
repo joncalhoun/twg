@@ -55,3 +55,14 @@ func (us *UserStore) Create(user *User) error {
 	}
 	return nil
 }
+
+// Delete will delete a user form the DB. If there is an error it will
+// be wrapped and returned.
+func (us *UserStore) Delete(id int) error {
+	const query = `DELETE FROM users WHERE id=$1;`
+	_, err := us.sql.Exec(query, id)
+	if err != nil {
+		return errors.Wrap(err, "psql: error deleting user")
+	}
+	return nil
+}
