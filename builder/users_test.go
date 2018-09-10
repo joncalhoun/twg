@@ -125,3 +125,29 @@ func testUserStore_Find(us *UserStore) func(t *testing.T) {
 		}
 	}
 }
+
+// func newServer(t *testing.T) (*httptest.Server, func()) {
+// 	t.Helper()
+// 	db := ...
+//   cache, err := ...
+//   if err != nil {
+//     t.Fatalf(...)
+//   }
+//   h := Handler(db, cache...)
+//   server := httptest.NewServer(h)
+//   // ...
+//   return server, func() {
+//     db.Close()
+//     cache.Close()
+//     server.Close()
+//   }
+// }
+
+// func TestRoutes(t *testing.T) {
+//   server, teardown := newServer(t)
+//   defer teardown()
+
+//   t.Run("home", func(t *testing.T) { testGetRoute(t, app, "/") })
+//   t.Run("about", func(t *testing.T) { testGetRoute(t, app, "/about") })
+//   t.Run("contact", func(t *testing.T) { testGetRoute(t, app, "/contact") })
+// }
