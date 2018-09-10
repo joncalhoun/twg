@@ -2,9 +2,9 @@ package sleep
 
 import (
 	"testing"
-	"time"
 )
 
 func TestTmpExecutable(t *testing.T) {
-	time.Sleep(time.Minute)
+	// Uncomment this to see the test sleep
+	// time.Sleep(time.Minute)
 }

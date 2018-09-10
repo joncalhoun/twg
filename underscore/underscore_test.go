@@ -28,9 +28,9 @@ func TestCamel(t *testing.T) {
 		arg  string
 		want string
 	}{
-		{"thisIsACamelCaseString", "this_is_a_camel_case_string1"},
+		{"thisIsACamelCaseString", "this_is_a_camel_case_string"},
 		{"with a space", "with a space"},
-		{"endsWithA", "ends_with_a1"},
+		{"endsWithA", "ends_with_a"},
 	}
 	// setup
 	for _, tt := range tests {
