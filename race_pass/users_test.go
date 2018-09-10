@@ -10,6 +10,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var a = "a"
+
 func TestMain(m *testing.M) {
 	// 0. flag.Parse() if you need flags
 	exitCode := run(m)
