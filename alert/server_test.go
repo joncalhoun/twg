@@ -1,4 +1,4 @@
-package cmp_test
+package alert_test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joncalhoun/twg/cmp"
+	"github.com/joncalhoun/twg/alert"
 	"golang.org/x/net/html"
 )
 
@@ -56,7 +56,7 @@ func findNodes(body, tag, class string) ([]string, error) {
 }
 
 func TestApp(t *testing.T) {
-	app := cmp.App{}
+	app := alert.App{}
 
 	type checkFn func(r *http.Response, body string) error
 	hasNoAlerts := func() func(*http.Response, string) error {
