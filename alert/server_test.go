@@ -55,11 +55,13 @@ func findNodes(body, tag, class string) ([]string, error) {
 	return ret, nil
 }
 
+// See https://golang.org/src/net/http/httptest/recorder_test.go for more
+// examples
 func TestApp(t *testing.T) {
 	app := alert.App{}
 
 	type checkFn func(r *http.Response, body string) error
-	hasNoAlerts := func() func(*http.Response, string) error {
+	hasNoAlerts := func() checkFn {
 		return func(r *http.Response, body string) error {
 			nodes, err := findNodes(body, "div", "alert")
 			if err != nil {
@@ -71,7 +73,7 @@ func TestApp(t *testing.T) {
 			return nil
 		}
 	}
-	hasAlert := func(msg string) func(*http.Response, string) error {
+	hasAlert := func(msg string) checkFn {
 		return func(r *http.Response, body string) error {
 			nodes, err := findNodes(body, "div", "alert")
 			if err != nil {
@@ -99,14 +101,16 @@ func TestApp(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("%s %s", tc.method, tc.path), func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r, err := http.NewRequest(tc.method, tc.path, nil)
+			r, err := http.NewRequest(tc.method, tc.path, tc.body)
 			if err != nil {
 				t.Fatalf("http.NewRequest() err = %s", err)
 			}
 			app.ServeHTTP(w, r)
 			res := w.Result()
+			defer res.Body.Close()
 			var sb strings.Builder
 			io.Copy(&sb, res.Body)
+
 			for _, check := range tc.checks {
 				if err := check(res, sb.String()); err != nil {
 					t.Error(err)
