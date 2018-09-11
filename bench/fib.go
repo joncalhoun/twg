@@ -1,5 +1,7 @@
 package bench
 
+import "sync"
+
 // The first few Fibonacci numbers are:
 // 1, 1, 2, 3, 5, 8, 13, ... where F(1) = 1, F(2) = 1, and
 // F(3) = F(2) + F(1) = 2, and more generally
@@ -40,4 +42,30 @@ func FibMemo(n int) int {
 		memo = append(memo, FibMemo(n-1)+FibMemo(n-2)) // append the nth value
 	}
 	return memo[n]
+}
+
+var (
+	mutex   sync.RWMutex
+	memoMap = map[int]int{
+		0: 0,
+		1: 1,
+	}
+)
+
+// FibMemoThreadsafe will calculate the Fibonacci number recursively using
+// a pkg level memo variable and a pkg level mutex. This is threadsafe,
+// but is more confusing than the other solutions.
+func FibMemoThreadsafe(n int) int {
+	mutex.RLock()
+	if v, ok := memoMap[n]; ok {
+		defer mutex.RUnlock()
+		return v
+	}
+	mutex.RUnlock()
+	n2 := FibMemoThreadsafe(n - 2)
+	n1 := FibMemoThreadsafe(n - 1)
+	mutex.Lock()
+	memoMap[n] = n1 + n2
+	mutex.Unlock()
+	return n1 + n2
 }
