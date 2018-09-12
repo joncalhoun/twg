@@ -1,0 +1,5 @@
+mode: set
+github.com/joncalhoun/twg/cover/cover.go:5.32,7.2 1 0
+github.com/joncalhoun/twg/cover/cover.go:9.45,11.2 1 1
+github.com/joncalhoun/twg/cover/cover.go:13.42,15.2 1 1
+github.com/joncalhoun/twg/cover/cover.go:17.36,19.2 1 1
