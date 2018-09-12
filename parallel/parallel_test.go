@@ -15,6 +15,14 @@ func TestA(t *testing.T) {
 	t.Parallel()
 	time.Sleep(time.Second)
 }
+func TestA2(t *testing.T) {
+	t.Parallel()
+	time.Sleep(time.Second)
+}
+func TestA3(t *testing.T) {
+	t.Parallel()
+	time.Sleep(time.Second)
+}
 
 func TestB(t *testing.T) {
 	fmt.Println("setup")
