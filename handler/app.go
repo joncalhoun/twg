@@ -66,13 +66,10 @@ func headerAuthMw(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		next(w, r)
+		next(w, r)
 	}
 }
 
 func (a *Server) admin(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "<h1>Welcome to the admin page!</h1>")
-}
-
-func Home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "<h1>Welcome!</h1>")
 }
