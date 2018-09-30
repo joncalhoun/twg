@@ -61,6 +61,7 @@ func TestFibGradient(t *testing.T) {
 
 func bytesEq(t *testing.T, a, b []byte) bool {
 	if len(a) != len(b) {
+		t.Logf("bytesEq: len(a) = %d; want %d", len(a), len(b))
 		return false
 	}
 	for i := 0; i < len(a); i++ {
