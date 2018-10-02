@@ -37,7 +37,7 @@ func TestFields(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(fmt.Sprintf("%v", tc.strct), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%T", tc.strct), func(t *testing.T) {
 			got := fields(tc.strct)
 			if got != tc.want {
 				t.Errorf("fields() = %v; want %v", got, tc.want)
