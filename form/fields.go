@@ -15,6 +15,9 @@ func fields(strct interface{}) []field {
 	for i := 0; i < t.NumField(); i++ {
 		tf := t.Field(i)
 		rvf := rv.Field(i)
+		if !rvf.CanInterface() {
+			continue
+		}
 		f := field{
 			Label:       tf.Name,
 			Name:        tf.Name,

@@ -1,17 +1,16 @@
 package form
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
 
 func TestFields(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		strct interface{}
 		want  []field
 	}{
-		{
+		"Simplest use case": {
 			strct: struct {
 				Name string
 			}{},
@@ -25,7 +24,7 @@ func TestFields(t *testing.T) {
 				},
 			},
 		},
-		{
+		"Field names should be determined from the struct": {
 			strct: struct {
 				FullName string
 			}{},
@@ -39,7 +38,7 @@ func TestFields(t *testing.T) {
 				},
 			},
 		},
-		{
+		"Multiple fields should be supported": {
 			strct: struct {
 				Name  string
 				Email string
@@ -69,7 +68,7 @@ func TestFields(t *testing.T) {
 				},
 			},
 		},
-		{
+		"Values should be parsed": {
 			strct: struct {
 				Name  string
 				Email string
@@ -103,9 +102,36 @@ func TestFields(t *testing.T) {
 				},
 			},
 		},
+		"Unexported fields should be skipped": {
+			strct: struct {
+				Name  string
+				email string
+				Age   int
+			}{
+				Name:  "Jon Calhoun",
+				email: "jon@calhoun.io",
+				Age:   123,
+			},
+			want: []field{
+				{
+					Label:       "Name",
+					Name:        "Name",
+					Type:        "text",
+					Placeholder: "Name",
+					Value:       "Jon Calhoun",
+				},
+				{
+					Label:       "Age",
+					Name:        "Age",
+					Type:        "text",
+					Placeholder: "Age",
+					Value:       123,
+				},
+			},
+		},
 	}
-	for _, tc := range tests {
-		t.Run(fmt.Sprintf("%T", tc.strct), func(t *testing.T) {
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
 			got := fields(tc.strct)
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("fields() = %v; want %v", got, tc.want)
