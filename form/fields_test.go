@@ -7,9 +7,6 @@ import (
 )
 
 func TestFields(t *testing.T) {
-	type form struct {
-		Name string
-	}
 	tests := []struct {
 		strct interface{}
 		want  []field
@@ -116,3 +113,68 @@ func TestFields(t *testing.T) {
 		})
 	}
 }
+
+// func TestFields_labels(t *testing.T) {
+// 	hasLabels := func(labels ...string) func(*testing.T, []field) {
+// 		return func(t *testing.T, fields []field) {
+// 			if len(fields) != len(labels) {
+// 				t.Fatalf("fields() len = %d; want %d", len(fields), len(labels))
+// 			}
+// 			for i := 0; i < len(fields); i++ {
+// 				if fields[i].Label != labels[i] {
+// 					t.Errorf("fields()[%d].Label = %s; want %s", i, fields[i].Label, labels[i])
+// 				}
+// 			}
+// 		}
+// 	}
+// 	hasValues := func(values ...interface{}) func(*testing.T, []field) {
+// 		return func(t *testing.T, fields []field) {
+// 			if len(fields) != len(values) {
+// 				t.Fatalf("fields() len = %d; want %d", len(fields), len(values))
+// 			}
+// 			for i := 0; i < len(fields); i++ {
+// 				if fields[i].Value != values[i] {
+// 					t.Errorf("fields()[%d].Value = %v; want %v", i, fields[i].Value, values[i])
+// 				}
+// 			}
+// 		}
+// 	}
+// 	check := func(checks ...func(*testing.T, []field)) []func(*testing.T, []field) {
+// 		return checks
+// 	}
+
+// 	tests := map[string]struct {
+// 		strct  interface{}
+// 		checks []func(*testing.T, []field)
+// 	}{
+// 		"No values": {
+// 			strct: struct {
+// 				Name string
+// 			}{},
+// 			checks: check(hasLabels("Name")),
+// 		},
+// 		"Multiple fields with values": {
+// 			strct: struct {
+// 				Name  string
+// 				Email string
+// 				Age   int
+// 			}{
+// 				Name:  "Jon Calhoun",
+// 				Email: "jon@calhoun.io",
+// 				Age:   123,
+// 			},
+// 			checks: check(
+// 				hasLabels("Name", "Email", "Age"),
+// 				hasValues("Jon Calhoun", "jon@calhoun.io", 123),
+// 			),
+// 		},
+// 	}
+// 	for name, tc := range tests {
+// 		t.Run(name, func(t *testing.T) {
+// 			got := fields(tc.strct)
+// 			for _, check := range tc.checks {
+// 				check(t, got)
+// 			}
+// 		})
+// 	}
+// }
