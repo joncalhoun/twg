@@ -24,6 +24,7 @@ func TestFields(t *testing.T) {
 					Name:        "Name",
 					Type:        "text",
 					Placeholder: "Name",
+					Value:       "",
 				},
 			},
 		},
@@ -37,6 +38,7 @@ func TestFields(t *testing.T) {
 					Name:        "FullName",
 					Type:        "text",
 					Placeholder: "FullName",
+					Value:       "",
 				},
 			},
 		},
@@ -52,18 +54,55 @@ func TestFields(t *testing.T) {
 					Name:        "Name",
 					Type:        "text",
 					Placeholder: "Name",
+					Value:       "",
 				},
 				{
 					Label:       "Email",
 					Name:        "Email",
 					Type:        "text",
 					Placeholder: "Email",
+					Value:       "",
 				},
 				{
 					Label:       "Age",
 					Name:        "Age",
 					Type:        "text",
 					Placeholder: "Age",
+					Value:       0,
+				},
+			},
+		},
+		{
+			strct: struct {
+				Name  string
+				Email string
+				Age   int
+			}{
+				Name:  "Jon Calhoun",
+				Email: "jon@calhoun.io",
+				Age:   123,
+			},
+			want: []field{
+				{
+					Label:       "Name",
+					Name:        "Name",
+					Type:        "text",
+					Placeholder: "Name",
+					Value:       "Jon Calhoun",
+				},
+				{
+					Label:       "Email",
+					Name:        "Email",
+					Type:        "text",
+					Placeholder: "Email",
+					Value:       "jon@calhoun.io",
+				},
+				{
+					Label:       "Age",
+					Name:        "Age",
+					Type:        "text",
+					Placeholder: "Age",
+					Value:       123,
 				},
 			},
 		},

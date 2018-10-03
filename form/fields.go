@@ -14,11 +14,13 @@ func fields(strct interface{}) []field {
 	var ret []field
 	for i := 0; i < t.NumField(); i++ {
 		tf := t.Field(i)
+		rvf := rv.Field(i)
 		f := field{
 			Label:       tf.Name,
 			Name:        tf.Name,
 			Type:        "text",
 			Placeholder: tf.Name,
+			Value:       rvf.Interface(),
 		}
 		ret = append(ret, f)
 	}
@@ -30,4 +32,5 @@ type field struct {
 	Name        string
 	Type        string
 	Placeholder string
+	Value       interface{}
 }
