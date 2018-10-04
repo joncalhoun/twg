@@ -130,6 +130,31 @@ func TestFields(t *testing.T) {
 				},
 			},
 		},
+		"Pointers to structs should be supported": {
+			strct: &struct {
+				Name string
+				Age  int
+			}{
+				Name: "Jon Calhoun",
+				Age:  123,
+			},
+			want: []field{
+				{
+					Label:       "Name",
+					Name:        "Name",
+					Type:        "text",
+					Placeholder: "Name",
+					Value:       "Jon Calhoun",
+				},
+				{
+					Label:       "Age",
+					Name:        "Age",
+					Type:        "text",
+					Placeholder: "Age",
+					Value:       123,
+				},
+			},
+		},
 		// "Non-structs shouldn't work": {
 		// 	strct: "some string",
 		// },
