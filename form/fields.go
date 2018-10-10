@@ -4,10 +4,6 @@ import (
 	"reflect"
 )
 
-// func HTML(strct interface{}, tpl *template.Template) template.HTML {
-// 	return template.HTML("")
-// }
-
 func valueOf(v interface{}) reflect.Value {
 	var rv reflect.Value
 	switch value := v.(type) {
