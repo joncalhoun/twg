@@ -6,6 +6,77 @@ import (
 	"testing"
 )
 
+// TODO: Add test case for invalid struct tag value
+
+func TestParseTags(t *testing.T) {
+	tests := map[string]struct {
+		arg  reflect.StructField
+		want map[string]string
+	}{
+		"empty tag": {
+			arg:  reflect.StructField{},
+			want: nil,
+		},
+		"label tag": {
+			arg: reflect.StructField{
+				Tag: `form:"label=Full Name"`,
+			},
+			want: map[string]string{
+				"label": "Full Name",
+			},
+		},
+		"multiple tags": {
+			arg: reflect.StructField{
+				Tag: `form:"label=Full Name;name=full_name"`,
+			},
+			want: map[string]string{
+				"label": "Full Name",
+				"name":  "full_name",
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := parseTags(tc.arg)
+			if len(got) != len(tc.want) {
+				t.Errorf("parseTags() len = %d, want %d", len(got), len(tc.want))
+			}
+			for k, v := range tc.want {
+				gv, ok := got[k]
+				if !ok {
+					t.Errorf("parseTags() missing key %q", k)
+					continue
+				}
+				if gv != v {
+					t.Errorf("parseTags()[%q] = %q; want %q", k, gv, v)
+				}
+				delete(got, k)
+			}
+			for gk, gv := range got {
+				t.Errorf("parseTags() extra key %q, value = %q", gk, gv)
+			}
+		})
+	}
+}
+
+func TestParseTags_invalidTag(t *testing.T) {
+	tests := []struct {
+		arg reflect.StructField
+	}{
+		{reflect.StructField{Tag: `form:"invalid-value"`}},
+	}
+	for _, tc := range tests {
+		t.Run(string(tc.arg.Tag), func(t *testing.T) {
+			defer func() {
+				if err := recover(); err == nil {
+					t.Errorf("parseTags() did not panic")
+				}
+			}()
+			parseTags(tc.arg)
+		})
+	}
+}
+
 func TestFields(t *testing.T) {
 	var nilStructPtr *struct {
 		Name string
