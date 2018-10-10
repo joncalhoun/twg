@@ -405,12 +405,90 @@ func TestFields(t *testing.T) {
 				},
 			},
 		},
+		"Struct tags": {
+			strct: struct {
+				LabelTest       string `form:"label=This is custom"`
+				NameTest        string `form:"name=full_name"`
+				TypeTest        int    `form:"type=number"`
+				PlaceholderTest string `form:"placeholder=your value goes here..."`
+				Nested          struct {
+					MultiTest string `form:"name=NestedMulti;label=This is nested;type=email;placeholder=user@example.com"`
+				}
+			}{
+				PlaceholderTest: "value and placeholder",
+			},
+			want: []field{
+				{
+					Label:       "This is custom",
+					Name:        "LabelTest",
+					Type:        "text",
+					Placeholder: "LabelTest",
+					Value:       "",
+				},
+				{
+					Label:       "NameTest",
+					Name:        "full_name",
+					Type:        "text",
+					Placeholder: "NameTest",
+					Value:       "",
+				},
+				{
+					Label:       "TypeTest",
+					Name:        "TypeTest",
+					Type:        "number",
+					Placeholder: "TypeTest",
+					Value:       0,
+				},
+				{
+					Label:       "PlaceholderTest",
+					Name:        "PlaceholderTest",
+					Type:        "text",
+					Placeholder: "your value goes here...",
+					Value:       "value and placeholder",
+				},
+				{
+					Label:       "This is nested",
+					Name:        "NestedMulti",
+					Type:        "email",
+					Placeholder: "user@example.com",
+					Value:       "",
+				},
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := fields(tc.strct)
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("fields() = %v; want %v", got, tc.want)
+			if reflect.DeepEqual(got, tc.want) {
+				return
+			}
+			if len(got) != len(tc.want) {
+				t.Errorf("fields() len = %d; want %d", len(got), len(tc.want))
+			}
+			for i, gotField := range got {
+				if i >= len(tc.want) {
+					break
+				}
+				wantField := tc.want[i]
+				if reflect.DeepEqual(gotField, wantField) {
+					continue
+				}
+				t.Errorf("fields()[%d]", i)
+				if gotField.Label != wantField.Label {
+					t.Errorf("  .Label = %v; want %v", gotField.Label, wantField.Label)
+				}
+				if gotField.Name != wantField.Name {
+					t.Errorf("  .Name = %v; want %v", gotField.Name, wantField.Name)
+				}
+				if gotField.Type != wantField.Type {
+					t.Errorf("  .Type = %v; want %v", gotField.Type, wantField.Type)
+				}
+				if gotField.Placeholder != wantField.Placeholder {
+					t.Errorf("  .Placeholder = %v; want %v", gotField.Placeholder, wantField.Placeholder)
+				}
+				if gotField.Value != wantField.Value {
+					t.Errorf("  .Value = %v; want %v", gotField.Value, wantField.Value)
+				}
 			}
 		})
 	}
