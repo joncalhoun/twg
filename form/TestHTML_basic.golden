@@ -1,2 +1,1 @@
-<input type="text" name="Name" value="Michael Scott">
-<input type="text" name="Email" value="michael@dundermifflin.com">
+<input type="text" name="Name" value="Michael Scott"><input type="text" name="Email" value="michael@dundermifflin.com">
