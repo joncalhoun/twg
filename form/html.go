@@ -39,6 +39,7 @@ type FieldError struct {
 func HTML(t *template.Template, strct interface{}, errors ...FieldError) (template.HTML, error) {
 	var inputs []string
 	for _, field := range fields(strct) {
+		field.setErrors(errors)
 		var sb strings.Builder
 		err := t.Execute(&sb, field)
 		if err != nil {

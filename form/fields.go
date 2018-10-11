@@ -85,6 +85,14 @@ func (f *field) apply(tags map[string]string) {
 	}
 }
 
+func (f *field) setErrors(errors []FieldError) {
+	for _, fe := range errors {
+		if fe.Field == f.Name {
+			f.Errors = append(f.Errors, fe.Error)
+		}
+	}
+}
+
 func parseTags(sf reflect.StructField) map[string]string {
 	// label=Full Name;name=full_name
 	rawTag := sf.Tag.Get("form")
