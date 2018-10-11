@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// FieldError is provided as a way to denote errors with specific fields.
+type FieldError struct {
+	Field string
+	Error string
+}
+
 // HTML is used to generate HTML forms/inputs from Go structs. Given a
 // template that looks something like this:
 //
@@ -30,7 +36,7 @@ import (
 //
 // Note: This does not currently support struct tags, but will eventually
 // in order to support more customization and flexibility.
-func HTML(t *template.Template, strct interface{}) (template.HTML, error) {
+func HTML(t *template.Template, strct interface{}, errors ...FieldError) (template.HTML, error) {
 	var inputs []string
 	for _, field := range fields(strct) {
 		var sb strings.Builder

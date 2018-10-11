@@ -67,6 +67,7 @@ type field struct {
 	Type        string
 	Placeholder string
 	Value       interface{}
+	Errors      []string
 }
 
 func (f *field) apply(tags map[string]string) {

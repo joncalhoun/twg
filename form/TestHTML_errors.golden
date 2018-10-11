@@ -1,0 +1,21 @@
+
+	<label>Email Address</label>
+	<input
+		class="border-red"
+		type="email"
+		name="EmailAddress"
+		placeholder="you@domain.com"
+		value="email@taken.com">
+	<p class="text-red text-xs italic">Email address is already taken</p>
+
+	<label>Password</label>
+	<input
+		class="border-red"
+		type="password"
+		name="Password"
+		placeholder="Password"
+		value="badpw">
+	<p class="text-red text-xs italic">Password must be between 201 and 210 characters</p>
+	<p class="text-red text-xs italic">Password must contain a greek letter</p>
+	<p class="text-red text-xs italic">Password must be a palindrome</p>
+	<p class="text-red text-xs italic">Password must contain an emoji</p>

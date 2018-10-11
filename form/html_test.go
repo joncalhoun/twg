@@ -27,12 +27,24 @@ var (
 		name="{{.Name}}"
 		placeholder="{{.Placeholder}}"
 		{{with .Value}}value="{{.}}"{{end}}>`))
+	tplErrors = template.Must(template.New("").Parse(`
+	<label>{{.Label}}</label>
+	<input
+		class="{{with .Errors}}border-red{{end}}"
+		type="{{.Type}}"
+		name="{{.Name}}"
+		placeholder="{{.Placeholder}}"
+		{{with .Value}}value="{{.}}"{{end}}>
+	{{range .Errors}}
+		<p class="text-red text-xs italic">{{.}}</p>
+	{{end}}`))
 )
 
 func TestHTML(t *testing.T) {
 	tests := map[string]struct {
 		tpl     *template.Template
 		strct   interface{}
+		errors  []form.FieldError
 		want    string
 		wantErr error
 	}{
@@ -62,10 +74,28 @@ func TestHTML(t *testing.T) {
 			},
 			want: "TestHTML_structTags.golden",
 		},
+		"A form with errors": {
+			tpl: tplErrors,
+			strct: struct {
+				Email    string `form:"label=Email Address;placeholder=you@domain.com;type=email;name=EmailAddress"`
+				Password string `form:"type=password"`
+			}{
+				Email:    "email@taken.com",
+				Password: "badpw",
+			},
+			errors: []form.FieldError{
+				{Field: "EmailAddress", Error: "Email address is already taken"},
+				{Field: "Password", Error: "Password must be between 201 and 210 characters"},
+				{Field: "Password", Error: "Password must contain a greek letter"},
+				{Field: "Password", Error: "Password must be a palindrome"},
+				{Field: "Password", Error: "Password must contain an emoji"},
+			},
+			want: "TestHTML_errors.golden",
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, err := form.HTML(tc.tpl, tc.strct)
+			got, err := form.HTML(tc.tpl, tc.strct, tc.errors...)
 			if err != tc.wantErr {
 				t.Fatalf("HTML() err = %v; want %v", err, tc.wantErr)
 			}
