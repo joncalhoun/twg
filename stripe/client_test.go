@@ -8,7 +8,9 @@ import (
 )
 
 func TestClient_Customer(t *testing.T) {
-	c := stripe.Client{}
+	c := stripe.Client{
+		Key: "sk_test_4eC39HqLyjWDarjtT1zdp7dc",
+	}
 	tok := "tok_amex"
 	cus, err := c.Customer(tok)
 	if err != nil {
