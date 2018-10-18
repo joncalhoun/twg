@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	Version = "2018-09-24"
+)
+
 type Customer struct {
 	ID string `json:"id"`
 }
@@ -25,6 +29,7 @@ func (c *Client) Customer(token string) (*Customer, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Stripe-Version", Version)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(c.Key, "")
 	httpClient := http.Client{}
