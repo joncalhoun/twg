@@ -2,7 +2,6 @@ package stripe
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -14,17 +13,20 @@ const (
 )
 
 type Customer struct {
-	ID string `json:"id"`
+	ID            string `json:"id"`
+	DefaultSource string `json:"default_source"`
+	Email         string `json:"email"`
 }
 
 type Client struct {
 	Key string
 }
 
-func (c *Client) Customer(token string) (*Customer, error) {
+func (c *Client) Customer(token, email string) (*Customer, error) {
 	endpoint := "https://api.stripe.com/v1/customers"
 	v := url.Values{}
 	v.Set("source", token)
+	v.Set("email", email)
 	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(v.Encode()))
 	if err != nil {
 		return nil, err
@@ -42,7 +44,7 @@ func (c *Client) Customer(token string) (*Customer, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(body))
+	// fmt.Println(string(body))
 	var cus Customer
 	err = json.Unmarshal(body, &cus)
 	if err != nil {

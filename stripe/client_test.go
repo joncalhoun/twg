@@ -25,7 +25,8 @@ func TestClient_Customer(t *testing.T) {
 		Key: apiKey,
 	}
 	tok := "tok_amex"
-	cus, err := c.Customer(tok)
+	email := "test@testwithgo.com"
+	cus, err := c.Customer(tok, email)
 	if err != nil {
 		t.Errorf("Customer() err = %v; want %v", err, nil)
 	}
@@ -34,5 +35,11 @@ func TestClient_Customer(t *testing.T) {
 	}
 	if !strings.HasPrefix(cus.ID, "cus_") {
 		t.Errorf("Customer() ID = %s; want prefix %q", cus.ID, "cus_")
+	}
+	if !strings.HasPrefix(cus.DefaultSource, "card_") {
+		t.Errorf("Customer() DefaultSource = %s; want prefix %q", cus.DefaultSource, "card_")
+	}
+	if cus.Email != email {
+		t.Errorf("Customer() Email = %s; want %s", cus.Email, email)
 	}
 }
