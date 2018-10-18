@@ -20,6 +20,10 @@ type Customer struct {
 
 type Client struct {
 	Key string
+
+	// Don't change this once you start using the client, otherwise
+	// you can run into race conditions
+	BaseURL string
 }
 
 func (c *Client) Customer(token, email string) (*Customer, error) {
