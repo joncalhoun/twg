@@ -49,6 +49,35 @@ func TestClient_Charge(t *testing.T) {
 		t.Skip("No API key provided")
 	}
 
+	type checkFn func(*testing.T, *stripe.Charge, error)
+	check := func(fns ...checkFn) []checkFn { return fns }
+
+	hasNoErr := func() checkFn {
+		return func(t *testing.T, charge *stripe.Charge, err error) {
+			if err != nil {
+				t.Fatalf("err = %v; want nil", err)
+			}
+		}
+	}
+	hasAmount := func(amount int) checkFn {
+		return func(t *testing.T, charge *stripe.Charge, err error) {
+			if charge.Amount != amount {
+				t.Errorf("Amount = %d; want %d", charge.Amount, amount)
+			}
+		}
+	}
+	hasErrType := func(typee string) checkFn {
+		return func(t *testing.T, charge *stripe.Charge, err error) {
+			se, ok := err.(stripe.Error)
+			if !ok {
+				t.Fatalf("err isn't a stripe.Error")
+			}
+			if se.Type != typee {
+				t.Errorf("err.Type = %s; want %s", se.Type, typee)
+			}
+		}
+	}
+
 	c := stripe.Client{
 		Key: apiKey,
 	}
@@ -59,16 +88,29 @@ func TestClient_Charge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Customer() err = %v; want nil", err)
 	}
-	_ = cus
-	amount := 1234
-	charge, err := c.Charge("cus_123", amount)
-	if err != nil {
-		t.Errorf("Charge() err = %v; want %v", err, nil)
+
+	tests := map[string]struct {
+		customerID string
+		amount     int
+		checks     []checkFn
+	}{
+		"valid charge": {
+			customerID: cus.ID,
+			amount:     1234,
+			checks:     check(hasNoErr(), hasAmount(1234)),
+		},
+		"invalid customer id": {
+			customerID: "cus_missing",
+			amount:     1234,
+			checks:     check(hasErrType("invalid_request_error")),
+		},
 	}
-	if charge == nil {
-		t.Fatalf("Charge() = nil; want non-nil value")
-	}
-	if charge.Amount != amount {
-		t.Errorf("Charge() Amount = %d; want %d", charge.Amount, amount)
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			charge, err := c.Charge(tc.customerID, tc.amount)
+			for _, check := range tc.checks {
+				check(t, charge, err)
+			}
+		})
 	}
 }

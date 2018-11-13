@@ -2,7 +2,6 @@ package stripe
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -56,7 +55,9 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println(string(body))
+	// if res.StatusCode >= 400 {
+	// 	return nil, parseError(body)
+	// }
 	var cus Customer
 	err = json.Unmarshal(body, &cus)
 	if err != nil {
@@ -88,11 +89,23 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(body))
+	if res.StatusCode >= 400 {
+		return nil, parseError(body)
+	}
+
 	var chg Charge
 	err = json.Unmarshal(body, &chg)
 	if err != nil {
 		return nil, err
 	}
 	return &chg, nil
+}
+
+func parseError(data []byte) error {
+	var se Error
+	err := json.Unmarshal(data, &se)
+	if err != nil {
+		return err
+	}
+	return se
 }
