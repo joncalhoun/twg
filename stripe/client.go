@@ -55,9 +55,9 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 	if err != nil {
 		return nil, err
 	}
-	// if res.StatusCode >= 400 {
-	// 	return nil, parseError(body)
-	// }
+	if res.StatusCode >= 400 {
+		return nil, parseError(body)
+	}
 	var cus Customer
 	err = json.Unmarshal(body, &cus)
 	if err != nil {

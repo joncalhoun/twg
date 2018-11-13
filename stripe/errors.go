@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+const (
+	ErrTypeCardError      = "card_error"
+	ErrTypeInvalidRequest = "invalid_request_error"
+)
+
 type Error struct {
 	Code    string `json:"code"`
 	DocURL  string `json:"doc_url"`

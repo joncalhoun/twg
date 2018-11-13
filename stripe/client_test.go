@@ -12,6 +12,12 @@ var (
 	apiKey string
 )
 
+const (
+	tokenAmex        = "tok_amex"
+	tokenInvalid     = "tok_alsdkjfa"
+	tokenExpiredCard = "tok_chargeDeclinedExpiredCard"
+)
+
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your TEST secret key for the Stripe API. If present, integration tests will be run using this key.")
 }
@@ -21,26 +27,81 @@ func TestClient_Customer(t *testing.T) {
 		t.Skip("No API key provided")
 	}
 
+	type checkFn func(*testing.T, *stripe.Customer, error)
+	check := func(fns ...checkFn) []checkFn { return fns }
+
+	hasNoErr := func() checkFn {
+		return func(t *testing.T, cus *stripe.Customer, err error) {
+			if err != nil {
+				t.Fatalf("err = %v; want nil", err)
+			}
+		}
+	}
+	hasErrType := func(typee string) checkFn {
+		return func(t *testing.T, cus *stripe.Customer, err error) {
+			se, ok := err.(stripe.Error)
+			if !ok {
+				t.Fatalf("err isn't a stripe.Error")
+			}
+			if se.Type != typee {
+				t.Errorf("err.Type = %s; want %s", se.Type, typee)
+			}
+		}
+	}
+	hasIDPrefix := func() checkFn {
+		return func(t *testing.T, cus *stripe.Customer, err error) {
+			if !strings.HasPrefix(cus.ID, "cus_") {
+				t.Errorf("ID = %s; want prefix %q", cus.ID, "cus_")
+			}
+		}
+	}
+	hasCardDefaultSource := func() checkFn {
+		return func(t *testing.T, cus *stripe.Customer, err error) {
+			if !strings.HasPrefix(cus.DefaultSource, "card_") {
+				t.Errorf("DefaultSource = %s; want prefix %q", cus.DefaultSource, "card_")
+			}
+		}
+	}
+	hasEmail := func(email string) checkFn {
+		return func(t *testing.T, cus *stripe.Customer, err error) {
+			if cus.Email != email {
+				t.Errorf("Email = %s; want %s", cus.Email, email)
+			}
+		}
+	}
+
 	c := stripe.Client{
 		Key: apiKey,
 	}
-	tok := "tok_amex"
-	email := "test@testwithgo.com"
-	cus, err := c.Customer(tok, email)
-	if err != nil {
-		t.Errorf("Customer() err = %v; want %v", err, nil)
+
+	tests := map[string]struct {
+		token  string
+		email  string
+		checks []checkFn
+	}{
+		"valid customer with amex": {
+			token:  tokenAmex,
+			email:  "test@testwithgo.com",
+			checks: check(hasNoErr(), hasIDPrefix(), hasCardDefaultSource(), hasEmail("test@testwithgo.com")),
+		},
+		"invalid token": {
+			token:  tokenInvalid,
+			email:  "test@testwithgo.com",
+			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
+		},
+		"expired card": {
+			token:  tokenExpiredCard,
+			email:  "test@testwithgo.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
 	}
-	if cus == nil {
-		t.Fatalf("Customer() = nil; want non-nil value")
-	}
-	if !strings.HasPrefix(cus.ID, "cus_") {
-		t.Errorf("Customer() ID = %s; want prefix %q", cus.ID, "cus_")
-	}
-	if !strings.HasPrefix(cus.DefaultSource, "card_") {
-		t.Errorf("Customer() DefaultSource = %s; want prefix %q", cus.DefaultSource, "card_")
-	}
-	if cus.Email != email {
-		t.Errorf("Customer() Email = %s; want %s", cus.Email, email)
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			cus, err := c.Customer(tc.token, tc.email)
+			for _, check := range tc.checks {
+				check(t, cus, err)
+			}
+		})
 	}
 }
 
@@ -82,7 +143,7 @@ func TestClient_Charge(t *testing.T) {
 		Key: apiKey,
 	}
 	// Create a customer for the test
-	tok := "tok_amex"
+	tok := tokenAmex
 	email := "test@testwithgo.com"
 	cus, err := c.Customer(tok, email)
 	if err != nil {
@@ -102,7 +163,7 @@ func TestClient_Charge(t *testing.T) {
 		"invalid customer id": {
 			customerID: "cus_missing",
 			amount:     1234,
-			checks:     check(hasErrType("invalid_request_error")),
+			checks:     check(hasErrType(stripe.ErrTypeInvalidRequest)),
 		},
 	}
 	for name, tc := range tests {
