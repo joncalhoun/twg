@@ -43,3 +43,31 @@ func TestClient_Customer(t *testing.T) {
 		t.Errorf("Customer() Email = %s; want %s", cus.Email, email)
 	}
 }
+
+func TestClient_Charge(t *testing.T) {
+	if apiKey == "" {
+		t.Skip("No API key provided")
+	}
+
+	c := stripe.Client{
+		Key: apiKey,
+	}
+	// Create a customer for the test
+	tok := "tok_amex"
+	email := "test@testwithgo.com"
+	cus, err := c.Customer(tok, email)
+	if err != nil {
+		t.Fatalf("Customer() err = %v; want nil", err)
+	}
+	amount := 1234
+	charge, err := c.Charge(cus.ID, amount)
+	if err != nil {
+		t.Errorf("Charge() err = %v; want %v", err, nil)
+	}
+	if charge == nil {
+		t.Fatalf("Charge() = nil; want non-nil value")
+	}
+	if charge.Amount != amount {
+		t.Errorf("Charge() Amount = %d; want %d", charge.Amount, amount)
+	}
+}
