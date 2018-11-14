@@ -2,6 +2,9 @@ package stripe_test
 
 import (
 	"flag"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -20,6 +23,60 @@ const (
 
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your TEST secret key for the Stripe API. If present, integration tests will be run using this key.")
+}
+
+func TestClient_Local(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{
+			"id": "cus_Dy08A71mTUtap1",
+			"object": "customer",
+			"account_balance": 0,
+			"created": 1542124116,
+			"currency": "usd",
+			"default_source": null,
+			"delinquent": false,
+			"description": null,
+			"discount": null,
+			"email": null,
+			"invoice_prefix": "1C04993",
+			"livemode": false,
+			"metadata": {
+			},
+			"shipping": null,
+			"sources": {
+				"object": "list",
+				"data": [
+
+				],
+				"has_more": false,
+				"total_count": 0,
+				"url": "/v1/customers/cus_Dy08A71mTUtap1/sources"
+			},
+			"subscriptions": {
+				"object": "list",
+				"data": [
+
+				],
+				"has_more": false,
+				"total_count": 0,
+				"url": "/v1/customers/cus_Dy08A71mTUtap1/subscriptions"
+			},
+			"tax_info": null,
+			"tax_info_verification": null
+		}`)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	c := stripe.Client{
+		Key:     "gibberish-key",
+		BaseURL: server.URL,
+	}
+	_, err := c.Customer("random token", "random email")
+	if err != nil {
+		t.Fatalf("err = %v; want nil", err)
+	}
 }
 
 func TestClient_Customer(t *testing.T) {
