@@ -21,9 +21,14 @@ var (
 )
 
 const (
-	tokenAmex        = "tok_amex"
-	tokenInvalid     = "tok_alsdkjfa"
-	tokenExpiredCard = "tok_chargeDeclinedExpiredCard"
+	tokenAmex               = "tok_amex"
+	tokenVisaDebit          = "tok_visa_debit"
+	tokenMastercardPrepaid  = "tok_mastercard_prepaid"
+	tokenInvalid            = "tok_alsdkjfa"
+	tokenExpiredCard        = "tok_chargeDeclinedExpiredCard"
+	tokenIncorrectCVC       = "tok_chargeDeclinedIncorrectCvc"
+	tokenInsufficientFunds  = "tok_chargeDeclinedInsufficientFunds"
+	tokenChargeCustomerFail = "tok_chargeCustomerFail"
 )
 
 func init() {
@@ -230,6 +235,16 @@ func TestClient_Customer(t *testing.T) {
 			email:  "test@testwithgo.com",
 			checks: check(hasErrType(stripe.ErrTypeCardError)),
 		},
+		"incorrect cvc": {
+			token:  tokenIncorrectCVC,
+			email:  "test@testwithgo.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
+		"insufficient funds": {
+			token:  tokenInsufficientFunds,
+			email:  "test@testwithgo.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -293,10 +308,20 @@ func TestClient_Charge(t *testing.T) {
 		amount     int
 		checks     []checkFn
 	}{
-		"valid charge": {
+		"valid charge with amex": {
 			customerID: customerViaToken(tokenAmex),
 			amount:     1234,
 			checks:     check(hasNoErr(), hasAmount(1234)),
+		},
+		"valid charge with visa debit": {
+			customerID: customerViaToken(tokenVisaDebit),
+			amount:     8787,
+			checks:     check(hasNoErr(), hasAmount(8787)),
+		},
+		"valid charge with mastercard prepaid": {
+			customerID: customerViaToken(tokenMastercardPrepaid),
+			amount:     98765,
+			checks:     check(hasNoErr(), hasAmount(98765)),
 		},
 		"invalid customer id": {
 			customerID: func(*testing.T, *stripe.Client) string {
@@ -304,6 +329,11 @@ func TestClient_Charge(t *testing.T) {
 			},
 			amount: 1234,
 			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
+		},
+		"charge failure": {
+			customerID: customerViaToken(tokenChargeCustomerFail),
+			amount:     5555,
+			checks:     check(hasErrType(stripe.ErrTypeCardError)),
 		},
 	}
 	for name, tc := range tests {
