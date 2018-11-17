@@ -106,7 +106,7 @@ func stripeClient(t *testing.T) (*stripe.Client, func()) {
 }
 
 func recordResponse(t *testing.T, resp response, count int) {
-	path := filepath.Join("testdata", fmt.Sprintf("%s.%d.json", t.Name(), count))
+	path := filepath.Join("testdata", filepath.FromSlash(fmt.Sprintf("%s.%d.json", t.Name(), count)))
 	err := os.MkdirAll(filepath.Dir(path), 0700)
 	if err != nil {
 		t.Fatalf("failed to create the response dir: %s. err = %v", filepath.Dir(path), err)
