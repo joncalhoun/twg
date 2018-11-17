@@ -277,37 +277,41 @@ func TestClient_Charge(t *testing.T) {
 		}
 	}
 
-	c, teardown := stripeClient(t)
-	defer teardown()
-	// Create a customer for the test
-	tok := tokenAmex
-	email := "test@testwithgo.com"
-	cus, err := c.Customer(tok, email)
-	if err != nil {
-		t.Fatalf("Customer() err = %v; want nil", err)
+	customerViaToken := func(token string) func(*testing.T, *stripe.Client) string {
+		return func(t *testing.T, c *stripe.Client) string {
+			email := "test@testwithgo.com"
+			cus, err := c.Customer(token, email)
+			if err != nil {
+				t.Fatalf("err creating customer with token %s. err = %v; want nil", token, err)
+			}
+			return cus.ID
+		}
 	}
 
 	tests := map[string]struct {
-		customerID string
+		customerID func(*testing.T, *stripe.Client) string
 		amount     int
 		checks     []checkFn
 	}{
 		"valid charge": {
-			customerID: cus.ID,
+			customerID: customerViaToken(tokenAmex),
 			amount:     1234,
 			checks:     check(hasNoErr(), hasAmount(1234)),
 		},
 		"invalid customer id": {
-			customerID: "cus_missing",
-			amount:     1234,
-			checks:     check(hasErrType(stripe.ErrTypeInvalidRequest)),
+			customerID: func(*testing.T, *stripe.Client) string {
+				return "cus_missing"
+			},
+			amount: 1234,
+			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
 		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			c, teardown := stripeClient(t)
 			defer teardown()
-			charge, err := c.Charge(tc.customerID, tc.amount)
+			cusID := tc.customerID(t, c)
+			charge, err := c.Charge(cusID, tc.amount)
 			for _, check := range tc.checks {
 				check(t, charge, err)
 			}
