@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -89,6 +90,18 @@ func stripeClient(t *testing.T) (*stripe.Client, func()) {
 	c := stripe.Client{
 		Key: apiKey,
 	}
+	if apiKey == "" {
+		count := 0
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			resp := readResponse(t, count)
+			w.WriteHeader(resp.StatusCode)
+			w.Write(resp.Body)
+			count++
+		}
+		server := httptest.NewServer(http.HandlerFunc(handler))
+		c.BaseURL = server.URL
+		teardown = append(teardown, server.Close)
+	}
 	if update {
 		rc := &recorderClient{}
 		c.HttpClient = rc
@@ -105,8 +118,31 @@ func stripeClient(t *testing.T) (*stripe.Client, func()) {
 	}
 }
 
+func responsePath(t *testing.T, count int) string {
+	return filepath.Join("testdata", filepath.FromSlash(fmt.Sprintf("%s.%d.json", t.Name(), count)))
+}
+
+func readResponse(t *testing.T, count int) response {
+	var resp response
+	path := responsePath(t, count)
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("failed to open the response file: %s. err = %v", path, err)
+	}
+	defer f.Close()
+	jsonBytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		t.Fatalf("failed to read the response file: %s. err = %v", path, err)
+	}
+	err = json.Unmarshal(jsonBytes, &resp)
+	if err != nil {
+		t.Fatalf("failed to json unmarshal the response file: %s. err = %v", path, err)
+	}
+	return resp
+}
+
 func recordResponse(t *testing.T, resp response, count int) {
-	path := filepath.Join("testdata", filepath.FromSlash(fmt.Sprintf("%s.%d.json", t.Name(), count)))
+	path := responsePath(t, count)
 	err := os.MkdirAll(filepath.Dir(path), 0700)
 	if err != nil {
 		t.Fatalf("failed to create the response dir: %s. err = %v", filepath.Dir(path), err)
@@ -128,7 +164,7 @@ func recordResponse(t *testing.T, resp response, count int) {
 
 func TestClient_Customer(t *testing.T) {
 	if apiKey == "" {
-		t.Skip("No API key provided")
+		t.Log("No API key provided. Running unit tests using recorded responses. Be sure to run against the real API before commiting.")
 	}
 
 	type checkFn func(*testing.T, *stripe.Customer, error)
@@ -209,7 +245,7 @@ func TestClient_Customer(t *testing.T) {
 
 func TestClient_Charge(t *testing.T) {
 	if apiKey == "" {
-		t.Skip("No API key provided")
+		t.Log("No API key provided. Running unit tests using recorded responses. Be sure to run against the real API before commiting.")
 	}
 
 	type checkFn func(*testing.T, *stripe.Charge, error)
