@@ -33,9 +33,6 @@ type FieldError struct {
 //
 // An example similar to this is shown as the first test case in TestHTML
 // in the html_test.go source file.
-//
-// Note: This does not currently support struct tags, but will eventually
-// in order to support more customization and flexibility.
 func HTML(t *template.Template, strct interface{}, errors ...FieldError) (template.HTML, error) {
 	var inputs []string
 	for _, field := range fields(strct) {
