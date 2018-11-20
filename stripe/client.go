@@ -119,6 +119,33 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 	return &chg, nil
 }
 
+func (c *Client) GetCharge(chargeID string) (*Charge, error) {
+	endpoint := c.url(fmt.Sprintf("/charges/%s", chargeID))
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode >= 400 {
+		return nil, parseError(body)
+	}
+
+	var chg Charge
+	err = json.Unmarshal(body, &chg)
+	if err != nil {
+		return nil, err
+	}
+	return &chg, nil
+}
+
 func parseError(data []byte) error {
 	var se Error
 	err := json.Unmarshal(data, &se)

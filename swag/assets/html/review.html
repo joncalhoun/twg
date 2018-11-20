@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <meta name="description" content="Get your Go and Gopher stickers, shirts, and other swag">
+  <meta name="keywords" content="golang go gopher swag stickers coding shirts">
+  <meta name="author" content="Jon Calhoun">
+
+  <meta charset="utf-8">
+  <title>GopherSwag.com</title>
+
+  <link rel="stylesheet" type="text/css" href="../css/styles.css"/>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css?family=Monoton|Sacramento" rel="stylesheet">
+
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-grey-lightest">
+  <div class="w-full border-b-4 border-orange-lighter bg-blue-darker mb-8 pb-2">
+    <div class="container mx-auto py-6">
+      <h1 class="text-center font-google text-5xl font-normal">
+        <span class="text-yellow-dark">Gopher</span>
+        <span class="text-orange">Swag</span>
+      </h1>
+      <p class="font-google-cursive pt-4 text-4xl text-grey-lighter text-center">Bringing Gophers to the Physical World.</p>
+    </div>
+  </div>
+  <div class="container lg:w-2/3 mx-auto px-4">
+    <div class="w-full">
+      <div class="bg-yellow-lightest border-l-4 border-yellow p-4 rounded-r shadow" role="alert">
+        <p class="font-bold py-2 text-yellow-darkest opacity-75">You must confirm your order</p>
+        <p class="leading-normal text-yellow-darker opacity-75">Your order will not be fulfilled unless you review the information on this page and confirm the order by clicking the green "Complete My Order" button at the bottom of the page.</p>
+      </div>
+
+      <h3 class="text-grey-darker py-8">Review your address</h3>
+      <p class="text-grey-dark text-base leading-normal">
+        Your address will be printed on an envelope exactly as shown below in order to ship the stickers. Please verify that this is correct before proceeding.
+      </p>
+      <div class="w-full bg-white rounded shadow relative my-4">
+        <div class="static pin-t pin-l pl-6 pt-6">
+          <p class="uppercase tracking-wide text-grey-dark font-mono font-bold text-xs">Jon Calhoun <span class="normal-case text-blue-dark text-xs opacity-50">← <a class="no-underline text-blue-dark" href="https://www.calhoun.io">That's me!</a></span></p>
+          <p class="uppercase tracking-wide text-grey-dark font-mono font-bold text-xs">P.O. Box 295</p>
+          <p class="uppercase tracking-wide text-grey-dark font-mono font-bold text-xs">Bedford, PA <span class="pl-2">15522</span></p>
+          <p class="uppercase tracking-wide text-grey-dark font-mono font-bold text-xs">UNITED STATES</p>
+        </div>
+        <div class="absolute pin-t pin-r pr-6 pt-4">
+          <p class="text-5xl text-blue-dark opacity-50 pt-1"><i class="fas fa-certificate"></i></p>
+        </div>
+        <div class="flex items-center my-4 py-8">
+          <div class="flex-grow"></div>
+          <div class="flex-initial">
+            <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Jonathan T Calhoun</p>
+            <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">P.O. BOX 295</p>
+            <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Apt 123</p>
+            <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Bedford, PA <span class="pl-2">15522</span></p>
+            <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">UNITED STATES</p>
+          </div>
+          <div class="flex-grow"></div>
+        </div>
+        <div class="py-4"></div>
+      </div>
+      <h4 class="text-grey-dark py-4">A few things to check:</h4>
+      <ul class="text-grey-dark list-reset">
+        <li class="py-1 leading-normal flex">
+          <div class="flex-initial"><span class="text-blue-dark pl-1 pr-2 text-base">✔︎</span></div>
+          <div class="flex-grow">
+            Does your country look correct and match what the <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://blink.ucsd.edu/facilities/services/mail/international/addressing/index.html">USPS expects</a>?
+          </div>
+        </li>
+        <li class="py-1 leading-normal flex">
+          <div class="flex-initial"><span class="text-blue-dark pl-1 pr-2 text-base">✔︎</span></div>
+          <div class="flex-grow">
+            Should your postal code come before the city? If so, <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="#">click here</a> to fix the issue.
+          </div>
+        </li>
+        <li class="py-1 leading-normal flex">
+          <div class="flex-initial"><span class="text-blue-dark pl-1 pr-2 text-base">✔︎</span></div>
+          <div class="flex-grow">
+            Does anything else look out of place or need customized? <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="#">Click here</a> to provide an exact address to print on the envelope.
+          </div>
+        </li>
+      </ul>
+      <p class="text-grey-dark text-base leading-normal rounded py-4">
+        If your address format is not correct your shipment will likely be delayed, so please verify it is correct before moving one.
+      </p>
+    </div>
+    <div class="py-8">
+    <h3 class="text-grey-darker py-8">Review your order</h3>
+    <p class="text-grey-dark text-base leading-normal pb-2">
+      You are going to receive a sticker pack with <span class="bg-orange-lightest rounded text-grey-darker py-1 px-1">15 stickers</span>, all shown below. The bonus stickers will only be included if there are over 1000 orders and they don't introduce shipping issues.
+    </p>
+    <p class="text-grey-dark text-base leading-normal pb-2">
+      Each sticker will be approximately <span class="bg-orange-lightest rounded text-grey-darker py-1 px-1">2.5" x 2.5" (63mm x 63mm) in size</span>, but there will be a few exceptions that almost always result in slightly larger stickers. For instance, the "Don't Panic" sticker will be 5" x 1.5".
+    </p>
+    <p class="text-grey-dark text-base leading-normal pb-2">
+      When you confirm your order <span class="bg-yellow-lighter rounded text-grey-darker py-1 px-1">you will be charged $10</span>, but the stickers <span class="bg-orange-lightest rounded text-grey-darker py-1 px-1">may not arrive for several weeks.</span> <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="/#how-long">See the FAQ</a> for more info on how long it will take to receive your stickers and why there is a delay.
+    </p>
+    <div class="flex items-center justify-center flex-wrap px-4 py-6">
+      <div class="p-1"><img class="max-h-3xs" src="../img/classic-blue.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/classic-brown.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/twg-leap.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/twg-sit.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/gophercises-box.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/gophercises-jump.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/stream-falls.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/stream-fish.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/stream-float.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/80s-zero.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/80s-errors.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/80s-tmnt.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/80s-go-egon.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/80s-go.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/fun-ticket.png"></div>
+    </div>
+
+    <h4 class="text-grey-dark text-center pt-8 pb-4">Bonus Stickers</h4>
+    <div class="flex items-center justify-center flex-wrap px-4">
+      <div class="p-1"><img class="max-h-3xs" src="../img/egon-docker.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/egon-power.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/fun-dream.png"></div>
+      <div class="p-1"><img class="max-h-3xs" src="../img/fun-milk.png"></div>
+    </div>
+    <div class="py-4"></div>
+    <button type="submit" formmethod="post" class="shadow w-full bg-orange hover:bg-orange-dark text-white text-base font-bold uppercase tracking-wide py-4 px-4 rounded my-4">Complete my order</button>
+    <!-- TODO: Make this last4 number dynamic from the server -->
+    <p class="text-grey py-1 text-sm text-center">This will charge your card ending in 4242.</p>
+  </div>
+  <div style="height: 160px;"></div>
+</body>
+</html>

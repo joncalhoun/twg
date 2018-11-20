@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <meta name="description" content="Get your Go and Gopher stickers, shirts, and other swag">
+  <meta name="keywords" content="golang go gopher swag stickers coding shirts">
+  <meta name="author" content="Jon Calhoun">
+
+  <meta charset="utf-8">
+  <title>GopherSwag.com</title>
+
+  <link rel="stylesheet" type="text/css" href="../css/styles.css"/>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css?family=Monoton|Sacramento" rel="stylesheet">
+
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-grey-lightest">
+  <div class="w-full border-b-4 border-orange-lighter bg-blue-darker mb-8 pb-2">
+    <div class="container mx-auto py-6">
+      <h1 class="text-center font-google text-5xl font-normal">
+        <span class="text-yellow-dark">Gopher</span>
+        <span class="text-orange">Swag</span>
+      </h1>
+      <p class="font-google-cursive pt-4 text-4xl text-grey-lighter text-center">Bringing Gophers to the Physical World.</p>
+    </div>
+  </div>
+  <div class="container lg:w-2/3 mx-auto pt-2 px-4">
+    <form id="order-form" class="w-full" action="/orders/" method="post">
+      <h3 class="text-grey-darker py-8">Who will we be receiving these sweet stickers?</h3>
+      <div class="w-full mb-6">
+        <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="name">
+          Name
+        </label>
+        <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="name" name="name" type="text" placeholder="Jane Doe">
+      </div>
+      <div class="w-full mb-2">
+        <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="email">
+          Email Address
+        </label>
+        <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="email" name="email" type="email" placeholder="jane@doe.com">
+      </div>
+      <div class="mb-6">
+        <label class="block text-grey">
+          <input class="mr-1 leading-tight" type="checkbox" name="mailing-list" checked>
+          <span class="text-sm">
+            Notify me about other Go related products.
+          </span>
+        </label>
+      </div>
+
+      <!--<div class="py-4"></div>-->
+      <h3 class="text-grey-darker py-8">Where should we ship the order?</h3>
+      <div class="w-full mb-6">
+        <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="street1">
+          Street 1
+        </label>
+        <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="street1" name="street1" type="text" placeholder="123 Sticker St">
+      </div>
+      <div class="w-full mb-6">
+        <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="street2">
+          Street 2
+        </label>
+        <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="street2" name="street2" type="text" placeholder="Apt 45">
+      </div>
+      <div class="w-full flex flex-wrap items-end mb-6">
+        <div class="flex-grow pr-4">
+          <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="city">
+            City
+          </label>
+          <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="city" name="city" type="text" placeholder="San Francisco">
+        </div>
+        <div class="flex-grow pr-4">
+          <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="state">
+            State (or Province)
+          </label>
+          <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="state" name="state" type="text" placeholder="CA">
+        </div>
+        <div class="w-32">
+          <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="zip">
+            Postal Code
+          </label>
+          <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="zip" name="zip" type="text" placeholder="94139">
+        </div>
+      </div>
+      <div class="w-full mb-6">
+        <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="country">
+          Country
+        </label>
+        <input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" id="country" name="country" type="text" placeholder="United States">
+        <p class="text-grey py-2 text-sm">Please make sure your country matches what the USPS expects. See <a class="no-underline text-grey border-b-2 border-orange-lighter hover:border-orange" href="https://blink.ucsd.edu/facilities/services/mail/international/addressing/index.html">this site</a> for a bit more info on USPS address standards.</p>
+      </div>
+      <h3 class="text-grey-darker py-8">
+        How will you be paying?
+      </h3>
+      <input class="hidden" id="stripe-token" name="stripe-token" type="hidden">
+      <noscript>You must <a href="http://www.enable-javascript.com" target="_blank">enable JavaScript</a> in your web browser in order to pay via Stripe.</noscript>
+      <div class="w-full form-row">
+        <label class="block uppercase tracking-wide text-grey-darker text-xs font-bold mb-2" for="card-element">
+          Credit or debit card
+        </label>
+        <div id="card-element">
+          <!-- A Stripe Element will be inserted here. -->
+        </div>
+        <!-- Used to display form errors and a notification that the user won't be charged until they review their order. -->
+        <p id="card-errors" role="alert" class="text-grey py-2 text-sm">You will not be charged before reviewing your order.</p>
+      </div>
+
+      <div class="py-8"></div>
+      <button type="submit" formmethod="post" class="shadow w-full bg-orange hover:bg-orange-dark text-white text-base font-bold uppercase tracking-wide py-4 px-4 rounded my-4">Review your order →</button>
+    </form>
+  </div>
+  <div style="height: 160px;"></div>
+
+  <script>
+    // Create a Stripe client.
+    // TODO: Make sure this key comes dynamically from the server and only use your publishable key.
+    var stripe = Stripe('pk_test_g6do5S237ekq10r65BnxO6S0');
+    // Create an instance of Elements.
+    var elements = stripe.elements();
+    // Custom styling can be passed to options when creating an Element.
+    // (Note that this demo uses a wider set of styles than the guide below.)
+    var style = {
+      empty: {
+        color: '#b8c2cc'
+      },
+      base: {
+        color: '#606f7b',
+        lineHeight: '20px',
+        fontFamily: 'inherit',
+        fontSmoothing: 'antialiased',
+        fontSize: '16px',
+        '::placeholder': {
+          color: '#8795a1'
+        }
+      },
+      invalid: {
+        color: '#e3342f',
+        iconColor: '#e3342f'
+      }
+    };
+    // Create an instance of the card Element.
+    var card = elements.create('card', {style: style});
+    // Add an instance of the card Element into the `card-element` <div>.
+    card.mount('#card-element');
+
+    // Handle real-time validation errors from the card Element.
+    card.addEventListener('change', function(event) {
+      var displayError = document.getElementById('card-errors');
+      if (event.error) {
+        displayError.textContent = event.error.message;
+        displayError.classList.remove('text-grey');
+        displayError.classList.add('text-red');
+      } else {
+        displayError.classList.remove('text-red');
+        displayError.classList.add('text-grey');
+        displayError.textContent = 'You will not be charged before reviewing your order.';
+      }
+    });
+
+    // Handle form submission.
+    var form = document.getElementById('order-form');
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      stripe.createToken(card).then(function(result) {
+        if (result.error) {
+          // Inform the user if there was an error.
+          var errorElement = document.getElementById('card-errors');
+          errorElement.textContent = result.error.message;
+        } else {
+          var tokenInput = document.getElementById('stripe-token');
+          tokenInput.value = result.token.id;
+          form.submit();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

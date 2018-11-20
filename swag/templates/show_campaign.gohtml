@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <meta name="description" content="Get your Go and Gopher stickers, shirts, and other swag">
+  <meta name="keywords" content="golang go gopher swag stickers coding shirts">
+  <meta name="author" content="Jon Calhoun">
+
+  <meta charset="utf-8">
+  <title>GopherSwag.com</title>
+
+  <link rel="stylesheet" type="text/css" href="/css/styles.css"/>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css?family=Monoton|Sacramento" rel="stylesheet">
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-grey-lightest">
+  <div class="w-full border-b-4 border-orange-lighter bg-blue-darker mb-8 pb-2">
+    <div class="container mx-auto py-6">
+      <h1 class="text-center font-google text-5xl font-normal">
+        <span class="text-yellow-dark">Gopher</span>
+        <span class="text-orange">Swag</span>
+      </h1>
+      <p class="font-google-cursive pt-4 text-4xl text-grey-lighter text-center">Bringing Gophers to the Physical World.</p>
+    </div>
+  </div>
+  <div class="container mx-auto pt-2 px-2 lg:px-0">
+    <div class="text-center w-full">
+      <h2 class="text-center text-grey-darkest p-4 font-serif">Gopher Sticker Pack - <span class="text-orange-dark font-google">${{.Price}}</span></h2>
+    </div>
+    <div class="w-full mx-auto text-grey-dark pb-8 leading-normal font-serif text-lg">
+      <p>
+        15 awesome Go stickers that every other Gopher in the office will be jealous of. Each sticker is made from a durable vinyl with a laminate that protects them from scratching, rain and sunlight. Every sticker is roughly 2.5"x2.5" (63mm x 63mm), but some are wider or taller depending on their aspect ratio.
+      </p>
+      <p class="pt-4">
+        This campaign will run for a total of 10 days, after which stickers will be printed, packaged, and mailed to you in a regular old envelope.
+      </p>
+    </div>
+    <div class="w-full lg:flex">
+      <div class="lg:flex-grow">
+        <div>
+          <h3 class="text-center pt-8 pb-4 text-grey-darker">Classics</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            No Go sticker pack would be complete without some of the classic gopher images. These were created by <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://twitter.com/reneefrench">Renee French</a> and are licensed under the <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://creativecommons.org/licenses/by/3.0/us/">CC 3.0</a> license. See the <a class="text-grey-dark" href="https://blog.golang.org/gopher">Go blog</a> for more info.
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/classic-blue.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/classic-brown.png"></div>
+          </div>
+        </div>`
+        <div>
+          <h3 class="text-center pt-8 pb-4 text-grey-darker">Crash Test Gophers</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            Inspired by the iconic crash test dummy, these gophers were created by <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://twitter.com/egonelbre">Egon Elbre</a> for the course, <a class="no-underline text-grey-dark border-b-2 border-blue-lighter hover:border-blue" href="http://testwithgo.com">Test With Go</a>. In the course we build and write tests for this very website you are ordering stickers from.
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/twg-leap.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/twg-sit.png"></div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-center pt-8 pb-4 text-grey-darker">Exercising Gophers</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            Pump up your laptop with these exercising gophers! Both of these designs were created by <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://twitter.com/marcusolsson">Marcus Olsson</a> for my free course, <a class="no-underline text-grey-dark border-b-2 border-red-lighter hover:border-red" href="https://gophercises.com">Gophercises</a>.
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/gophercises-box.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/gophercises-jump.png"></div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-center pt-8 pb-4 text-grey-darker">"Stream"ing Bonanza Gophers</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            These gophers are having a blast playing in a "stream" (I know, this is more a river than a stream) and were created by <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://simonstefanelli.carbonmade.com/">Simon Stefanelli</a> for a project I plan to work on after my testing course. If you are looking for some design or illustration work you should totally get in touch with him!
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/stream-falls.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/stream-fish.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/stream-float.png"></div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-center pt-8 pb-4 text-grey-darker">Retro Proverbs</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            These designs feature some of the <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://go-proverbs.github.io/">Go proverbs</a> and are heavily influenced by logos and styles used in the 80s/90s. The original Go gopher used in the first two designs was created by Renee French.
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/80s-zero.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/80s-errors.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/80s-tmnt.png"></div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-center pt-8 pb-4 text-grey-darker">Fun &amp; Playful</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            These designs were are simply meant to be fun and playful. The gophers used were designed by Renee French and Egon Elbre, and the Go logo comes from the <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://blog.golang.org/go-brand">Go brand</a> assets.
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/80s-go-egon.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/80s-go.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/fun-ticket.png"></div>
+          </div>
+        </div>
+        <div>
+          <h3 id="bonus-stickers" class="text-center pt-8 pb-4 text-grey-darker">Bonus Stickers *</h3>
+          <p class="max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            <span class="bg-yellow-lighter py-1 px-1">*If there are at least 1000 sticker pack orders</span> I'll try to add some bonus stickers from the designs below.
+          </p>
+          <p class="pt-2 pb-4 max-w-md mx-auto pr-4 text-grey-dark leading-normal font-serif">
+            The gophers in this section were created by Egon Elbre and the bed in the 8-bit sleeping image was created by <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://magicredfox.deviantart.com/">MagicRedFox</a> as an asset pack for RPG maker.
+          </p>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-2xs" src="/img/egon-docker.png"></div>
+            <div class="p-4"><img class="max-h-2xs" src="/img/egon-power.png"></div>
+          </div>
+          <div class="flex items-center justify-center flex-wrap px-4">
+            <div class="p-4"><img class="max-h-xs" src="/img/fun-dream.png"></div>
+            <div class="p-4"><img class="max-h-xs" src="/img/fun-milk.png"></div>
+          </div>
+        </div>
+      </div>
+      <div class="w-full pt-8 lg:w-80 lg:flex-no-shrink">
+        <div class="lg:sticky" style="top: 20px">
+          <div class="bg-white rounded shadow rounded-t border-orange border-t-8">
+            <div class="px-8 py-2">
+              <div>
+                <p class="text-4xl font-semibold text-grey-darker pt-6">15</p>
+                <p class="text-sm text-grey leading-normal">unique stickers</p>
+                <p class="text-xs text-grey leading-normal">*plus bonus stickers if there are at least 1000 orders</p>
+              </div>
+              <div class="">
+                <p class="text-xl font-semibold text-grey-dark pt-6">${{.Price}}</p>
+                <p class="text-sm text-grey leading-normal">per pack</p>
+                <p class="text-xs text-grey leading-normal">S&amp;H included, even on international orders</p>
+              </div>
+              <div class="">
+                <p class="text-xl font-semibold text-grey-dark pt-6">2.5" <span class="text-base text-grey">(63mm)</span></p>
+                <p class="text-sm text-grey leading-normal">approximate diameter of each sticker</p>
+              </div>
+              <div class="">
+                <p class="text-xl font-semibold text-grey-dark pt-6">
+                  {{.TimeLeft.Value}}
+                </p>
+                <p class="text-sm text-grey leading-normal">
+                  {{.TimeLeft.Unit}} left to order
+                </p>
+              </div>
+            </div>
+            <div class="w-full py-6 px-8">
+              <a href="/campaigns/{{.ID}}/orders/new" class="block w-full no-underline bg-orange hover:bg-orange-dark text-white font-semibold py-3 px-4 rounded uppercase shadow text-center">
+              Buy Now
+              </a>
+              <!-- <label class="block text-center text-grey font-bold py-2">
+                <input class="mr-2 leading-tight" type="checkbox" checked>
+                <span class="text-sm">
+                  Donate $1 to Women Who Go
+                </span>
+              </label> -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="height: 160px;"></div>
+  </div>
+  <div>
+    <div class="w-full py-6 border-t-4 border-b-4 border-orange-lighter bg-blue-darker" id="faq">
+      <h1 class="text-left px-2 sm:text-center pr-4 font-normal font-google text-4xl text-orange">
+        <span class="text-yellow-dark">F</span>requently <span class="text-yellow-dark">A</span>sked</span> <span class="text-yellow-dark">Q</span>uestions
+      </h1>
+    </div>
+    <div class="container mx-auto py-6 px-2">
+      <h3 class="pt-8 pb-4 text-grey-darker">Where are the stickers printed?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        Stickers are printed via <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://www.stickermule.com/">Sticker Mule</a>, which is a pretty sweet printer I've used in the past.
+      </p>
+
+      <h3 id="how-long" class="pt-8 pb-4 text-grey-darker">How long until I get my stickers?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        Between two to four weeks is my best guess. The campaign will run for roughly 10 days. After that the stickers will be printed, shipped to me, individually packaged, and finally shipped to you.
+      </p>
+      <p class="pt-2 text-grey-dark leading-normal font-serif">
+        Most of you will receive your stickers within two weeks or so, but some of you may end up waiting longer. I promise I'll move things along as quickly as I can on my end, and I'll let you know when your stickers ship.
+      </p>
+
+      <h3 class="pt-8 pb-4 text-grey-darker">I live in _____________. Will you really ship there for free?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        As long as you can receive an envelope in a mailbox I can send you stickers.
+      </p>
+
+      <h3 class="pt-8 pb-4 text-grey-darker">Will I receive a tracking number?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        No. I will let you know when your stickers have shipped, but they are shipping via regular old mail because it is way cheaper than anything with a tracking number. If for some reason your stickers don't show up after a month or two get in touch - I'll gladly fix the issue and plan to order some extra stickers just in case this happens.
+      </p>
+
+      <h3 class="pt-8 pb-4 text-grey-darker">Do we really learn to test using this page in your course, <a class="text-grey-darker no-underline border-b-2 border-orange-lighter hover:border-orange" href="https://testwithgo.com">Test with Go</a>?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        You bet we do! The final version in the testing course isn't identical to the live version, but they are very similar. The primary differences revolve around how I structured the backend data (I don't use a database at all for the live version).
+      </p>
+
+      <h3 class="pt-8 pb-4 text-grey-darker">Why do you need 1000 orders for the bonus stickers?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        It is more cost effective to print stickers in bulk, so we need at least 1000 orders to make sure I break even printing the bonus stickers.
+      </p>
+
+      <h3 class="pt-8 pb-4 text-grey-darker">Why don't you print with _____________ to save money?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        This is my first sticker pack and I know Sticker Mule has both awesome quality and a quick turnaround. This means I can order the stickers *after* the campaign is over without a big delay and avoid the risk of printing thousands of stickers that nobody wants to buy. If this goes well I will look into cheaper printing options - like the printer used by Wes Bos - and see if a cheaper sticker pack is possible.
+      </p>
+      <p class="text-grey-dark leading-normal font-serif">
+        Once I understand how much demand there will be for future sticker packs I may experiment with cheaper printers and printing them ahead of time to speed up delivery, but it just didn't make sense for the first sticker pack.
+      </p>
+
+      <h3 class="pt-8 pb-4 text-grey-darker">Who are you?</h3>
+      <p class="text-grey-dark leading-normal font-serif">
+        I am <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="mailto:jon@calhoun.io">Jon Calhoun</a>. I write about Go on my blog at <a class="no-underline text-grey-dark border-b-2 border-green-lighter hover:border-green" href="https://www.calhoun.io">Calhoun.io</a> and create Go courses like <a class="no-underline text-grey-dark border-b-2 border-red-lighter hover:border-red" href="https://gophercises.com">Gophercises</a>, <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="https://www.usegolang.com">Web Development with Go</a>, and <a class="no-underline text-grey-dark border-b-2 border-blue-lighter hover:border-blue" href="https://testwithgo.com">Test with Go</a>. In fact, this very website was used as a project in the testing course!
+      </p>
+      <p class="pt-2 text-grey-dark leading-normal font-serif">
+        I previously spoke at GothamGo, was a guest on the Go Time podcast, worked at Google, and founded a Y Combinator backed startup, but these days I mostly focus on helping people learn Go. 😍
+      </p>
+    </div>
+  </div>
+  <div style="height: 160px;"></div>
+</body>
+</html>

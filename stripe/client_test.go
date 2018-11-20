@@ -280,6 +280,13 @@ func TestClient_Charge(t *testing.T) {
 			}
 		}
 	}
+	hasStatus := func(status string) checkFn {
+		return func(t *testing.T, charge *stripe.Charge, err error) {
+			if charge.Status != status {
+				t.Errorf("Status = %s; want %s", charge.Status, status)
+			}
+		}
+	}
 	hasErrType := func(typee string) checkFn {
 		return func(t *testing.T, charge *stripe.Charge, err error) {
 			se, ok := err.(stripe.Error)
@@ -303,48 +310,88 @@ func TestClient_Charge(t *testing.T) {
 		}
 	}
 
-	tests := map[string]struct {
-		customerID func(*testing.T, *stripe.Client) string
-		amount     int
-		checks     []checkFn
-	}{
-		"valid charge with amex": {
-			customerID: customerViaToken(tokenAmex),
-			amount:     1234,
-			checks:     check(hasNoErr(), hasAmount(1234)),
-		},
-		"valid charge with visa debit": {
-			customerID: customerViaToken(tokenVisaDebit),
-			amount:     8787,
-			checks:     check(hasNoErr(), hasAmount(8787)),
-		},
-		"valid charge with mastercard prepaid": {
-			customerID: customerViaToken(tokenMastercardPrepaid),
-			amount:     98765,
-			checks:     check(hasNoErr(), hasAmount(98765)),
-		},
-		"invalid customer id": {
-			customerID: func(*testing.T, *stripe.Client) string {
-				return "cus_missing"
-			},
-			amount: 1234,
-			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
-		},
-		"charge failure": {
-			customerID: customerViaToken(tokenChargeCustomerFail),
-			amount:     5555,
-			checks:     check(hasErrType(stripe.ErrTypeCardError)),
-		},
-	}
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			c, teardown := stripeClient(t)
-			defer teardown()
-			cusID := tc.customerID(t, c)
-			charge, err := c.Charge(cusID, tc.amount)
-			for _, check := range tc.checks {
-				check(t, charge, err)
+	chargeViaToken := func(token string, amount int) func(*testing.T, *stripe.Client) string {
+		return func(t *testing.T, c *stripe.Client) string {
+			email := "test@testwithgo.com"
+			cus, err := c.Customer(token, email)
+			if err != nil {
+				t.Fatalf("err creating customer with token %s. err = %v; want nil", token, err)
 			}
-		})
+			chg, err := c.Charge(cus.ID, amount)
+			if err != nil {
+				t.Fatalf("err creating charge with token %s. err = %v; want nil", token, err)
+			}
+			return chg.ID
+		}
 	}
+
+	t.Run("Create charge", func(t *testing.T) {
+		tests := map[string]struct {
+			customerID func(*testing.T, *stripe.Client) string
+			amount     int
+			checks     []checkFn
+		}{
+			"valid charge with amex": {
+				customerID: customerViaToken(tokenAmex),
+				amount:     1234,
+				checks:     check(hasNoErr(), hasAmount(1234)),
+			},
+			"valid charge with visa debit": {
+				customerID: customerViaToken(tokenVisaDebit),
+				amount:     8787,
+				checks:     check(hasNoErr(), hasAmount(8787)),
+			},
+			"valid charge with mastercard prepaid": {
+				customerID: customerViaToken(tokenMastercardPrepaid),
+				amount:     98765,
+				checks:     check(hasNoErr(), hasAmount(98765)),
+			},
+			"invalid customer id": {
+				customerID: func(*testing.T, *stripe.Client) string {
+					return "cus_missing"
+				},
+				amount: 1234,
+				checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
+			},
+			"charge failure": {
+				customerID: customerViaToken(tokenChargeCustomerFail),
+				amount:     5555,
+				checks:     check(hasErrType(stripe.ErrTypeCardError)),
+			},
+		}
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				c, teardown := stripeClient(t)
+				defer teardown()
+				cusID := tc.customerID(t, c)
+				charge, err := c.Charge(cusID, tc.amount)
+				for _, check := range tc.checks {
+					check(t, charge, err)
+				}
+			})
+		}
+	})
+
+	t.Run("Get charge", func(t *testing.T) {
+		tests := map[string]struct {
+			chargeID func(*testing.T, *stripe.Client) string
+			checks   []checkFn
+		}{
+			"successful charge": {
+				chargeID: chargeViaToken(tokenAmex, 1234),
+				checks:   check(hasNoErr(), hasAmount(1234), hasStatus("succeeded")),
+			},
+		}
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				c, teardown := stripeClient(t)
+				defer teardown()
+				chgID := tc.chargeID(t, c)
+				charge, err := c.GetCharge(chgID)
+				for _, check := range tc.checks {
+					check(t, charge, err)
+				}
+			})
+		}
+	})
 }
