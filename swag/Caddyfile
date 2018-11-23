@@ -1,0 +1,10 @@
+gopherswag.com {
+  gzip
+  proxy / localhost:3000 {
+    transparent
+  }
+}
+
+www.gopherswag.com {
+  redir https://gopherswag.com{uri}
+}

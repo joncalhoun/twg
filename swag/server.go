@@ -438,7 +438,7 @@ func confirmOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chg, err := stripeClient.Charge(order.Payment.CustomerID, campaign.Price, map[string]string{
+	chg, err := stripeClient.Charge(order.Payment.CustomerID, order.Customer.Email, campaign.Price, map[string]string{
 		"address": order.Address.Raw,
 	})
 	if err != nil {

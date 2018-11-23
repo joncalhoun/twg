@@ -120,12 +120,13 @@ func (c *Client) CustomerMeta(cusID string, meta map[string]string) (*Customer, 
 	return &cus, nil
 }
 
-func (c *Client) Charge(customerID string, amount int, meta map[string]string) (*Charge, error) {
+func (c *Client) Charge(customerID, email string, amount int, meta map[string]string) (*Charge, error) {
 	endpoint := c.url("/charges")
 	v := url.Values{}
 	v.Set("customer", customerID)
 	v.Set("amount", strconv.Itoa(amount))
 	v.Set("currency", DefaultCurrency)
+	v.Set("receipt_email", email)
 	if meta != nil {
 		for key, val := range meta {
 			v.Set(fmt.Sprintf("metadata[%s]", key), val)

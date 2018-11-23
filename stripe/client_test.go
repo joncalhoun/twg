@@ -369,7 +369,7 @@ func TestClient_Charge(t *testing.T) {
 			if err != nil {
 				t.Fatalf("err creating customer with token %s. err = %v; want nil", token, err)
 			}
-			chg, err := c.Charge(cus.ID, amount, nil)
+			chg, err := c.Charge(cus.ID, email, amount, nil)
 			if err != nil {
 				t.Fatalf("err creating charge with token %s. err = %v; want nil", token, err)
 			}
@@ -429,7 +429,7 @@ UNITED STATES`)),
 				c, teardown := stripeClient(t)
 				defer teardown()
 				cusID := tc.customerID(t, c)
-				charge, err := c.Charge(cusID, tc.amount, tc.meta)
+				charge, err := c.Charge(cusID, "test@calhoun.io", tc.amount, tc.meta)
 				for _, check := range tc.checks {
 					check(t, charge, err)
 				}
