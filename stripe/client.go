@@ -17,18 +17,20 @@ const (
 )
 
 type Customer struct {
-	ID            string `json:"id"`
-	DefaultSource string `json:"default_source"`
-	Email         string `json:"email"`
+	ID            string            `json:"id"`
+	DefaultSource string            `json:"default_source"`
+	Email         string            `json:"email"`
+	Meta          map[string]string `json:"metadata"`
 }
 
 type Charge struct {
-	ID             string `json:"id"`
-	Amount         int    `json:"amount"`
-	FailureCode    string `json:"failure_code"`
-	FailureMessage string `json:"failure_message"`
-	Paid           bool   `json:"paid"`
-	Status         string `json:"status"`
+	ID             string            `json:"id"`
+	Amount         int               `json:"amount"`
+	FailureCode    string            `json:"failure_code"`
+	FailureMessage string            `json:"failure_message"`
+	Paid           bool              `json:"paid"`
+	Status         string            `json:"status"`
+	Meta           map[string]string `json:"metadata"`
 }
 
 type Client struct {
@@ -88,12 +90,47 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 	return &cus, nil
 }
 
-func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
+func (c *Client) CustomerMeta(cusID string, meta map[string]string) (*Customer, error) {
+	endpoint := c.url(fmt.Sprintf("/customers/%s", cusID))
+	v := url.Values{}
+	for key, val := range meta {
+		v.Set(fmt.Sprintf("metadata[%s]", key), val)
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(v.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode >= 400 {
+		return nil, parseError(body)
+	}
+	var cus Customer
+	err = json.Unmarshal(body, &cus)
+	if err != nil {
+		return nil, err
+	}
+	return &cus, nil
+}
+
+func (c *Client) Charge(customerID string, amount int, meta map[string]string) (*Charge, error) {
 	endpoint := c.url("/charges")
 	v := url.Values{}
 	v.Set("customer", customerID)
 	v.Set("amount", strconv.Itoa(amount))
 	v.Set("currency", DefaultCurrency)
+	if meta != nil {
+		for key, val := range meta {
+			v.Set(fmt.Sprintf("metadata[%s]", key), val)
+		}
+	}
 	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(v.Encode()))
 	if err != nil {
 		return nil, err

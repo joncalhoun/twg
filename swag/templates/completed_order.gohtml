@@ -29,7 +29,7 @@
     </div>
   </div>
   <div class="container lg:w-2/3 mx-auto px-4">
-    {{if eq .Charge.Successful}}
+    {{if .Charge.Successful}}
       <h3 class="text-grey-darker py-4 pt-8">Your order is complete!</h3>
       <p class="text-grey-dark text-base leading-normal py-4">
         Your card has been charged successfully. Just sit back and wait a few weeks for these sweet gophers to show up in your mailbox!
@@ -56,7 +56,7 @@
         You shouldn't be seeing this. Contact me - <a class="no-underline text-grey-dark border-b-2 border-orange-lighter hover:border-orange" href="mailto:jon@calhoun.io">jon@calhoun.io</a> - and let me know the URL you are visiting and I'll try to fix it up.
       </p>
     {{end}}
-    <div class="py-8"></div>
+    <div class="py-4"></div>
     <div class="flex sm:hidden justify-center">
       <div class="w-96">
         <div class="relative w-96 h-36 overflow-hidden">
@@ -87,11 +87,9 @@
           <div class="flex items-center my-4 py-8">
             <div class="flex-grow"></div>
             <div class="flex-initial">
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Jonathan T Calhoun</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">P.O. BOX 295</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Apt 123</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Bedford, PA <span class="pl-2">15522</span></p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">UNITED STATES</p>
+              {{range .Address.Lines}}
+                <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">{{.}}</p>
+              {{end}}
             </div>
             <div class="flex-grow"></div>
           </div>
@@ -129,11 +127,9 @@
           <div class="flex items-center my-4 py-8">
             <div class="flex-grow"></div>
             <div class="flex-initial">
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Jonathan T Calhoun</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">P.O. BOX 295</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Apt 123</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Bedford, PA <span class="pl-2">15522</span></p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">UNITED STATES</p>
+              {{range .Address.Lines}}
+                <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">{{.}}</p>
+              {{end}}
             </div>
             <div class="flex-grow"></div>
           </div>
@@ -171,11 +167,9 @@
           <div class="flex items-center my-4 py-8">
             <div class="flex-grow"></div>
             <div class="flex-initial">
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Jonathan T Calhoun</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">P.O. BOX 295</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Apt 123</p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">Bedford, PA <span class="pl-2">15522</span></p>
-              <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">UNITED STATES</p>
+              {{range .Address.Lines}}
+                <p class="uppercase tracking-wide text-grey-darker font-mono font-bold">{{.}}</p>
+              {{end}}
             </div>
             <div class="flex-grow"></div>
           </div>

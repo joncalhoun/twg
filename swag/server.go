@@ -23,8 +23,9 @@ import (
 var (
 	templates struct {
 		Orders struct {
-			New    *template.Template
-			Review *template.Template
+			New       *template.Template
+			Review    *template.Template
+			Completed *template.Template
 		}
 		Campaigns struct {
 			Show *template.Template
@@ -40,6 +41,9 @@ const (
 			</label>
 			<input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" name="{{.Name}}" type="{{.Type}}" placeholder="{{.Placeholder}}">
 		</div>`
+)
+
+var (
 	stripeSecretKey = "sk_test_qrrEUOnYjJjybMTEsQnABuzE"
 	stripePublicKey = "pk_test_pfEqL5GDjl8h4pXjv8CWpi80"
 )
@@ -55,13 +59,32 @@ func init() {
 
 	templates.Orders.Review = template.Must(template.ParseFiles("./templates/review_order.gohtml"))
 
+	templates.Orders.Completed = template.Must(template.ParseFiles("./templates/completed_order.gohtml"))
+
 	templates.Campaigns.Show = template.Must(template.ParseFiles("./templates/show_campaign.gohtml"))
 }
 
 func main() {
 	defer db.DB.Close()
 
-	db.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
+	startStr := "Fri Nov 23 0:00:00 -0500 EST 2018"
+	startAt, err := time.Parse("Mon Jan 2 15:04:05 -0700 MST 2006", startStr)
+	if err != nil {
+		panic(err)
+	}
+	endStr := "Tue Dec 4 3:00:00 -0500 EST 2018"
+	endAt, err := time.Parse("Mon Jan 2 15:04:05 -0700 MST 2006", endStr)
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.ActiveCampaign()
+	if err == sql.ErrNoRows {
+		db.CreateCampaign(startAt, endAt, 1000)
+		_, err = db.ActiveCampaign()
+	}
+	if err != nil {
+		panic(err)
+	}
 
 	mux := http.NewServeMux()
 	resourceMux := http.NewServeMux()
@@ -81,6 +104,22 @@ func main() {
 	if port == "" {
 		port = "3000"
 	}
+	secretKey := os.Getenv("STRIPE_SECRET_KEY")
+	if secretKey != "" {
+		fmt.Println("Using ENV stripe secret key...")
+		stripeSecretKey = secretKey
+	} else {
+		fmt.Println("Using test stripe secret key...")
+	}
+
+	publicKey := os.Getenv("STRIPE_PUBLIC_KEY")
+	if publicKey != "" {
+		fmt.Println("Using ENV stripe public key...")
+		stripePublicKey = publicKey
+	} else {
+		fmt.Println("Using test stripe public key...")
+	}
+
 	addr := fmt.Sprintf(":%s", port)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
@@ -181,7 +220,7 @@ func showActiveCampaign(w http.ResponseWriter, r *http.Request) {
 
 	var leftValue int
 	var leftUnit string
-	left := time.Now().Sub(campaign.EndsAt)
+	left := campaign.EndsAt.Sub(time.Now())
 	switch {
 	case left >= 24*time.Hour:
 		leftValue = int(left / (24 * time.Hour))
@@ -318,25 +357,47 @@ func showOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if order.Payment.ChargeID != "" {
-		stripeClient := &stripe.Client{
-			Key: stripeSecretKey,
-		}
-		chg, err := stripeClient.GetCharge(order.Payment.ChargeID)
-		if err != nil {
-			log.Printf("error looking up a customer's charge where chg.ID = %s; err = %v", order.Payment.ChargeID, err)
-			fmt.Fprintln(w, "Failed to lookup the status of your order. Please try again, or contact me if this persists - jon@calhoun.io")
-			return
-		}
-		switch chg.Status {
-		case "succeeded":
-			fmt.Fprintln(w, "Your order has been completed successfully! You will be contacted when it ships.")
-		case "pending":
-			fmt.Fprintln(w, "Your payment is still pending.")
-		case "failed":
-			fmt.Fprintln(w, "Your payment failed. :( Please create a new order with a new card if you want to try again.")
-		}
+		completedOrder(w, r, order, campaign)
 		return
 	}
+	reviewOrder(w, r, order, campaign)
+}
+
+func completedOrder(w http.ResponseWriter, r *http.Request, order *db.Order, campaign *db.Campaign) {
+	stripeClient := &stripe.Client{
+		Key: stripeSecretKey,
+	}
+	chg, err := stripeClient.GetCharge(order.Payment.ChargeID)
+	if err != nil {
+		log.Printf("error looking up a customer's charge where chg.ID = %s; err = %v", order.Payment.ChargeID, err)
+		fmt.Fprintln(w, "Failed to lookup the status of your order. Please try again, or contact me if this persists - jon@calhoun.io")
+		return
+	}
+	data := struct {
+		Charge struct {
+			Successful     bool
+			Failed         bool
+			FailureMessage string
+			Pending        bool
+		}
+		Address struct {
+			Lines []string
+		}
+	}{}
+	switch chg.Status {
+	case "succeeded":
+		data.Charge.Successful = true
+	case "pending":
+		data.Charge.Pending = true
+	case "failed":
+		data.Charge.Failed = true
+		data.Charge.FailureMessage = chg.FailureMessage
+	}
+	data.Address.Lines = strings.Split(order.Address.Raw, "\n")
+	templates.Orders.Completed.Execute(w, data)
+}
+
+func reviewOrder(w http.ResponseWriter, r *http.Request, order *db.Order, campaign *db.Campaign) {
 	data := struct {
 		Order struct {
 			ID      string
@@ -365,7 +426,21 @@ func confirmOrder(w http.ResponseWriter, r *http.Request) {
 	stripeClient := &stripe.Client{
 		Key: stripeSecretKey,
 	}
-	chg, err := stripeClient.Charge(order.Payment.CustomerID, campaign.Price)
+	cus, err := stripeClient.CustomerMeta(order.Payment.CustomerID, map[string]string{
+		"address": order.Address.Raw,
+	})
+	if err != nil {
+		if se, ok := err.(stripe.Error); ok {
+			log.Println("Error saving metadata: ", cus.ID, se.Message)
+			return
+		}
+		http.Error(w, "Something went wrong storing your address. Your card HAS NOT been charged. Please contact me for support - jon@calhoun.io - or try confirming your order again.", http.StatusInternalServerError)
+		return
+	}
+
+	chg, err := stripeClient.Charge(order.Payment.CustomerID, campaign.Price, map[string]string{
+		"address": order.Address.Raw,
+	})
 	if err != nil {
 		if se, ok := err.(stripe.Error); ok {
 			fmt.Fprint(w, se.Message)

@@ -258,6 +258,51 @@ func TestClient_Customer(t *testing.T) {
 	}
 }
 
+func TestClient_CustomerMeta(t *testing.T) {
+	if apiKey == "" {
+		t.Log("No API key provided. Running unit tests using recorded responses. Be sure to run against the real API before commiting.")
+	}
+
+	tests := map[string]struct {
+		token string
+		email string
+	}{
+		"valid customer with amex": {
+			token: tokenAmex,
+			email: "test@testwithgo.com",
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			c, teardown := stripeClient(t)
+			defer teardown()
+			cus, err := c.Customer(tc.token, tc.email)
+			if err != nil {
+				t.Fatalf("Customer() err = %v; want nil", err)
+			}
+			if len(cus.Meta) != 0 {
+				t.Fatalf("len(meta) = %d; want 0", len(cus.Meta))
+			}
+			address := `MR PERSON
+123 FAKE ST
+SOME TOWN, CA 12345
+UNITED STATES`
+			cus, err = c.CustomerMeta(cus.ID, map[string]string{
+				"address": address,
+			})
+			if err != nil {
+				t.Fatalf("CustomerMeta() err = %v; want nil", err)
+			}
+			if len(cus.Meta) != 1 {
+				t.Fatalf("len(meta) = %d; want 1", len(cus.Meta))
+			}
+			if cus.Meta["address"] != address {
+				t.Fatalf("meta[address] = %q; want %q", cus.Meta["address"], address)
+			}
+		})
+	}
+}
+
 func TestClient_Charge(t *testing.T) {
 	if apiKey == "" {
 		t.Log("No API key provided. Running unit tests using recorded responses. Be sure to run against the real API before commiting.")
@@ -298,6 +343,13 @@ func TestClient_Charge(t *testing.T) {
 			}
 		}
 	}
+	hasMeta := func(key, value string) checkFn {
+		return func(t *testing.T, charge *stripe.Charge, err error) {
+			if charge.Meta[key] != value {
+				t.Errorf("metadata[%s] = %q; want %q", key, charge.Meta[key], value)
+			}
+		}
+	}
 
 	customerViaToken := func(token string) func(*testing.T, *stripe.Client) string {
 		return func(t *testing.T, c *stripe.Client) string {
@@ -317,7 +369,7 @@ func TestClient_Charge(t *testing.T) {
 			if err != nil {
 				t.Fatalf("err creating customer with token %s. err = %v; want nil", token, err)
 			}
-			chg, err := c.Charge(cus.ID, amount)
+			chg, err := c.Charge(cus.ID, amount, nil)
 			if err != nil {
 				t.Fatalf("err creating charge with token %s. err = %v; want nil", token, err)
 			}
@@ -329,6 +381,7 @@ func TestClient_Charge(t *testing.T) {
 		tests := map[string]struct {
 			customerID func(*testing.T, *stripe.Client) string
 			amount     int
+			meta       map[string]string
 			checks     []checkFn
 		}{
 			"valid charge with amex": {
@@ -358,13 +411,25 @@ func TestClient_Charge(t *testing.T) {
 				amount:     5555,
 				checks:     check(hasErrType(stripe.ErrTypeCardError)),
 			},
+			"valid charge with metadata": {
+				customerID: customerViaToken(tokenAmex),
+				amount:     888,
+				meta: map[string]string{
+					"address": `123 Easy St
+Some Town, CA  90210
+UNITED STATES`,
+				},
+				checks: check(hasNoErr(), hasAmount(888), hasMeta("address", `123 Easy St
+Some Town, CA  90210
+UNITED STATES`)),
+			},
 		}
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
 				c, teardown := stripeClient(t)
 				defer teardown()
 				cusID := tc.customerID(t, c)
-				charge, err := c.Charge(cusID, tc.amount)
+				charge, err := c.Charge(cusID, tc.amount, tc.meta)
 				for _, check := range tc.checks {
 					check(t, charge, err)
 				}

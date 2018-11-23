@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -12,7 +13,7 @@ var (
 	DB *sql.DB
 )
 
-const (
+var (
 	host    = "localhost"
 	port    = "5432"
 	user    = "jon"
@@ -20,8 +21,26 @@ const (
 	sslMode = "disable"
 )
 
+func ifEnv(key, defaultValue string) string {
+	if got := os.Getenv(key); got != "" {
+		fmt.Printf("Got ENV value for %s...\n", key)
+		return got
+	}
+	fmt.Printf("Using default value for %s...\n", key)
+	return defaultValue
+}
+
 func init() {
+	host = ifEnv("PSQL_HOST", host)
+	port = ifEnv("PSQL_PORT", port)
+	user = ifEnv("PSQL_USER", user)
+	pw := ifEnv("PSQL_PW", "")
+	dbName = ifEnv("PSQL_DB_NAME", dbName)
+	sslMode = ifEnv("PSQL_SSL_MODE", sslMode)
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=%s", host, port, user, dbName, sslMode)
+	if pw != "" {
+		psqlInfo = psqlInfo + fmt.Sprintf(" password=%s", pw)
+	}
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		panic(err)
