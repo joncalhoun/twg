@@ -55,10 +55,10 @@ ssh root@gopherswag.com "cd /root/app; \
   cp -R /root/go/src/github.com/joncalhoun/twg/swag/db/migrations ."
 echo "  Migration files moved successfully!"
 
-echo "  Running migrations..."
-ssh root@gopherswag.com "cd /root/app; \
-  ./migrate.linux-amd64 -source file://migrations -database \"postgres://localhost:5432/swag_prod?user=postgres&password=2fY%23bL83&sslmode=disable&dbname=swag_prod\" up"
-echo "  Migrations done!"
+# echo "  Running migrations..."
+# ssh root@gopherswag.com "cd /root/app; \
+#   ./migrate.linux-amd64 -source file://migrations -database \"postgres://localhost:5432/swag_prod?user=postgres&password=2fY%23bL83&sslmode=disable&dbname=swag_prod\" up"
+# echo "  Migrations done!"
 
 echo "  Restarting the server..."
 ssh root@gopherswag.com "sudo service gopherswag.com restart"
