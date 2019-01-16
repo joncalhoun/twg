@@ -1,11 +1,27 @@
 package db_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
 	"github.com/joncalhoun/twg/swag/db"
 )
+
+var (
+	testURL string
+)
+
+func init() {
+	testURL = os.Getenv("PSQL_URL")
+	if testURL == "" {
+		testURL = db.DefaultURL
+	}
+	if db.DB != nil {
+		db.DB.Close()
+	}
+	db.Open(testURL)
+}
 
 func TestCreateCampaign(t *testing.T) {
 	var beforeCount int

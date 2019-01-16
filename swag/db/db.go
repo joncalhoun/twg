@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -13,21 +12,22 @@ var (
 )
 
 const (
-	host    = "localhost"
-	port    = "5432"
-	user    = "postgres"
-	dbName  = "swag_dev"
-	sslMode = "disable"
+	DefaultURL = "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable"
 )
 
 func init() {
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=%s", host, port, user, dbName, sslMode)
-	db, err := sql.Open("postgres", psqlInfo)
+	Open(DefaultURL)
+}
+
+// Open will open a database connection using the provided postgres URL.
+// Be sure to close this using the db.DB.Close function.
+func Open(psqlURL string) error {
+	db, err := sql.Open("postgres", psqlURL)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	// Be sure to close the DB!
 	DB = db
+	return nil
 }
 
 type Campaign struct {
