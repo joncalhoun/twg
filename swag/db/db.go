@@ -15,7 +15,7 @@ var (
 const (
 	host    = "localhost"
 	port    = "5432"
-	user    = "jon"
+	user    = "postgres"
 	dbName  = "swag_dev"
 	sslMode = "disable"
 )
