@@ -12,11 +12,11 @@ var (
 )
 
 const (
-	DefaultURL = "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable"
+	defaultURL = "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable"
 )
 
 func init() {
-	Open(DefaultURL)
+	Open(defaultURL)
 }
 
 // Open will open a database connection using the provided postgres URL.
