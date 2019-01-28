@@ -55,12 +55,14 @@ func CreateCampaign(start, end time.Time, price int) (*Campaign, error) {
 	}, nil
 }
 
+var timeNow = time.Now
+
 func ActiveCampaign() (*Campaign, error) {
 	statement := `
 	SELECT * FROM campaigns
 	WHERE starts_at <= $1
 	AND ends_at >= $1`
-	row := DB.QueryRow(statement, time.Now())
+	row := DB.QueryRow(statement, timeNow())
 	var camp Campaign
 	err := row.Scan(&camp.ID, &camp.StartsAt, &camp.EndsAt, &camp.Price)
 	if err != nil {

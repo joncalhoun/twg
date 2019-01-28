@@ -85,22 +85,8 @@ func TestActiveCampaign(t *testing.T) {
 	// each test case returns the campaign and error it wants from a call
 	// to ActiveCampaign
 	tests := map[string]func(*testing.T) (*db.Campaign, error){
-		"just started": func(t *testing.T) (*db.Campaign, error) {
-			// This test case is less than perfect... Can we fix it?
-			want, err := db.CreateCampaign(time.Now(), time.Now().Add(1*time.Hour), 900)
-			if err != nil {
-				t.Fatalf("CreateCampaign() err = %v; want nil", err)
-			}
-			return want, nil
-		},
-		// This test case fails, but we'd like it to pass. How do we fix it?
-		// "nearly ended": func(t *testing.T) (*db.Campaign, error) {
-		// 	want, err := db.CreateCampaign(time.Now().Add(-1*time.Hour), time.Now(), 900)
-		// 	if err != nil {
-		// 		t.Fatalf("CreateCampaign() err = %v; want nil", err)
-		// 	}
-		// 	return want, nil
-		// },
+		// "just started" and "nearly ended" are covered in db_int_test.go
+		// where we can overwrite the timeNow function.
 		"mid campaign": func(t *testing.T) (*db.Campaign, error) {
 			// This test case is less than perfect... Can we fix it?
 			want, err := db.CreateCampaign(time.Now().Add(-1*time.Hour), time.Now().Add(time.Hour), 900)
