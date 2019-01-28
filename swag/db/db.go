@@ -8,8 +8,24 @@ import (
 )
 
 var (
-	DB *sql.DB
+	DB *tempDB
+
+	DefaultDatabase = &Database{}
 )
+
+type tempDB struct{}
+
+func (tdb *tempDB) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return DefaultDatabase.sqlDB.Exec(query, args...)
+}
+
+func (tdb *tempDB) QueryRow(query string, args ...interface{}) *sql.Row {
+	return DefaultDatabase.sqlDB.QueryRow(query, args...)
+}
+
+func (tdb *tempDB) Close() error {
+	return DefaultDatabase.sqlDB.Close()
+}
 
 const (
 	defaultURL = "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable"
@@ -26,7 +42,7 @@ func Open(psqlURL string) error {
 	if err != nil {
 		return err
 	}
-	DB = db
+	DefaultDatabase.sqlDB = db
 	return nil
 }
 
@@ -37,13 +53,21 @@ type Campaign struct {
 	Price    int
 }
 
+type Database struct {
+	sqlDB *sql.DB
+}
+
 func CreateCampaign(start, end time.Time, price int) (*Campaign, error) {
+	return DefaultDatabase.CreateCampaign(start, end, price)
+}
+
+func (db *Database) CreateCampaign(start, end time.Time, price int) (*Campaign, error) {
 	statement := `
 	INSERT INTO campaigns(starts_at, ends_at, price)
 	VALUES($1, $2, $3)
 	RETURNING id`
 	var id int
-	err := DB.QueryRow(statement, start, end, price).Scan(&id)
+	err := db.sqlDB.QueryRow(statement, start, end, price).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +82,15 @@ func CreateCampaign(start, end time.Time, price int) (*Campaign, error) {
 var timeNow = time.Now
 
 func ActiveCampaign() (*Campaign, error) {
+	return DefaultDatabase.ActiveCampaign()
+}
+
+func (db *Database) ActiveCampaign() (*Campaign, error) {
 	statement := `
 	SELECT * FROM campaigns
 	WHERE starts_at <= $1
 	AND ends_at >= $1`
-	row := DB.QueryRow(statement, timeNow())
+	row := db.sqlDB.QueryRow(statement, timeNow())
 	var camp Campaign
 	err := row.Scan(&camp.ID, &camp.StartsAt, &camp.EndsAt, &camp.Price)
 	if err != nil {
@@ -72,10 +100,14 @@ func ActiveCampaign() (*Campaign, error) {
 }
 
 func GetCampaign(id int) (*Campaign, error) {
+	return DefaultDatabase.GetCampaign(id)
+}
+
+func (db *Database) GetCampaign(id int) (*Campaign, error) {
 	statement := `
 	SELECT * FROM campaigns
 	WHERE id = $1`
-	row := DB.QueryRow(statement, id)
+	row := db.sqlDB.QueryRow(statement, id)
 	var camp Campaign
 	err := row.Scan(&camp.ID, &camp.StartsAt, &camp.EndsAt, &camp.Price)
 	if err != nil {
@@ -115,6 +147,10 @@ type Order struct {
 }
 
 func CreateOrder(order *Order) error {
+	return DefaultDatabase.CreateOrder(order)
+}
+
+func (db *Database) CreateOrder(order *Order) error {
 	statement := `
 	INSERT INTO orders (
 		campaign_id,
@@ -124,7 +160,7 @@ func CreateOrder(order *Order) error {
 	)
 	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	RETURNING id`
-	err := DB.QueryRow(statement,
+	err := db.sqlDB.QueryRow(statement,
 		order.CampaignID,
 		order.Customer.Name,
 		order.Customer.Email,
@@ -146,10 +182,14 @@ func CreateOrder(order *Order) error {
 }
 
 func GetOrderViaPayCus(payCustomerID string) (*Order, error) {
+	return DefaultDatabase.GetOrderViaPayCus(payCustomerID)
+}
+
+func (db *Database) GetOrderViaPayCus(payCustomerID string) (*Order, error) {
 	statement := `
 	SELECT * FROM orders
 	WHERE pay_customer_id = $1`
-	row := DB.QueryRow(statement, payCustomerID)
+	row := db.sqlDB.QueryRow(statement, payCustomerID)
 	var ord Order
 	err := row.Scan(
 		&ord.ID,
