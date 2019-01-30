@@ -32,7 +32,7 @@ const (
 )
 
 func init() {
-	Open(defaultURL)
+	Init(defaultURL)
 }
 
 // Init will open a connection to the provided psql DB and then set the

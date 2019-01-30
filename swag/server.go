@@ -40,6 +40,9 @@ const (
 			</label>
 			<input class="bg-grey-lighter appearance-none border-2 border-grey-lighter hover:border-orange rounded w-full py-2 px-4 text-grey-darker leading-tight" name="{{.Name}}" type="{{.Type}}" placeholder="{{.Placeholder}}">
 		</div>`
+)
+
+var (
 	stripeSecretKey = "sk_test_qrrEUOnYjJjybMTEsQnABuzE"
 	stripePublicKey = "pk_test_pfEqL5GDjl8h4pXjv8CWpi80"
 )
