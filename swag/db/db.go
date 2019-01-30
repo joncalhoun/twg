@@ -24,7 +24,7 @@ func (tdb *tempDB) QueryRow(query string, args ...interface{}) *sql.Row {
 }
 
 func (tdb *tempDB) Close() error {
-	return DefaultDatabase.sqlDB.Close()
+	return DefaultDatabase.Close()
 }
 
 const (
@@ -35,15 +35,26 @@ func init() {
 	Open(defaultURL)
 }
 
-// Open will open a database connection using the provided postgres URL.
-// Be sure to close this using the db.DB.Close function.
-func Open(psqlURL string) error {
-	db, err := sql.Open("postgres", psqlURL)
+// Init will open a connection to the provided psql DB and then set the
+// default database to that connection.
+func Init(psqlURL string) error {
+	database, err := Open(psqlURL)
 	if err != nil {
 		return err
 	}
-	DefaultDatabase.sqlDB = db
+	DefaultDatabase = database
 	return nil
+}
+
+// Open will create a new Database with the provided psqlURL
+func Open(psqlURL string) (*Database, error) {
+	db, err := sql.Open("postgres", psqlURL)
+	if err != nil {
+		return nil, err
+	}
+	return &Database{
+		sqlDB: db,
+	}, nil
 }
 
 type Campaign struct {
@@ -55,6 +66,10 @@ type Campaign struct {
 
 type Database struct {
 	sqlDB *sql.DB
+}
+
+func (db *Database) Close() error {
+	return db.sqlDB.Close()
 }
 
 func CreateCampaign(start, end time.Time, price int) (*Campaign, error) {

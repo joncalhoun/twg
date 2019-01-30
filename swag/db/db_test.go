@@ -23,13 +23,38 @@ func init() {
 	if testURL == "" {
 		testURL = defaultURL
 	}
-	if db.DB != nil {
-		db.DB.Close()
-	}
-	db.Open(testURL)
 }
 
-func TestCreateCampaign(t *testing.T) {
+func TestDatabase(t *testing.T) {
+	// Makes sure we don't accidentally use the global DefaultDatabase
+	tmp := db.DefaultDatabase
+	db.DefaultDatabase = nil
+	defer func() {
+		db.DefaultDatabase = tmp
+	}()
+
+	database, err := db.Open(testURL)
+	if err != nil {
+		t.Fatalf("Open() err = %v; want nil", err)
+	}
+	defer database.Close()
+
+	tests := map[string]func(*testing.T, *db.Database){
+		"CreateCampaigns":   testCreateCampaign,
+		"ActiveCampaign":    testActiveCampaign,
+		"GetCampaign":       testGetCampaign,
+		"CreateOrder":       testCreateOrder,
+		"GetOrderViaPayCus": testGetOrderViaPayCus,
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			database.TestReset(t)
+			tc(t, database)
+		})
+	}
+}
+
+func testCreateCampaign(t *testing.T, database *db.Database) {
 	tests := map[string]*db.Campaign{
 		"active": &db.Campaign{
 			StartsAt: time.Now(),
@@ -44,14 +69,14 @@ func TestCreateCampaign(t *testing.T) {
 	}
 	for name, want := range tests {
 		t.Run(name, func(t *testing.T) {
-			defer reset(t)
+			defer database.TestReset(t)
 
-			nBefore := count(t, "campaigns")
+			nBefore := database.TestCount(t, "campaigns")
 
 			start := want.StartsAt
 			end := want.EndsAt
 			price := want.Price
-			created, err := db.CreateCampaign(start, end, price)
+			created, err := database.CreateCampaign(start, end, price)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -63,12 +88,12 @@ func TestCreateCampaign(t *testing.T) {
 				t.Errorf("CreateCampaign() %v", err)
 			}
 
-			nAfter := count(t, "campaigns")
+			nAfter := database.TestCount(t, "campaigns")
 			if diff := nAfter - nBefore; diff != 1 {
 				t.Fatalf("CreateCampaign() increased campaign count by %d; want %d", diff, 1)
 			}
 
-			got, err := db.GetCampaign(created.ID)
+			got, err := database.GetCampaign(created.ID)
 			if err != nil {
 				t.Fatalf("GetCampaign() err = %v; want nil", err)
 			}
@@ -79,9 +104,7 @@ func TestCreateCampaign(t *testing.T) {
 	}
 }
 
-func TestActiveCampaign(t *testing.T) {
-	reset(t)
-
+func testActiveCampaign(t *testing.T, database *db.Database) {
 	// each test case returns the campaign and error it wants from a call
 	// to ActiveCampaign
 	tests := map[string]func(*testing.T) (*db.Campaign, error){
@@ -89,7 +112,7 @@ func TestActiveCampaign(t *testing.T) {
 		// where we can overwrite the timeNow function.
 		"mid campaign": func(t *testing.T) (*db.Campaign, error) {
 			// This test case is less than perfect... Can we fix it?
-			want, err := db.CreateCampaign(time.Now().Add(-1*time.Hour), time.Now().Add(time.Hour), 900)
+			want, err := database.CreateCampaign(time.Now().Add(-1*time.Hour), time.Now().Add(time.Hour), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -99,14 +122,14 @@ func TestActiveCampaign(t *testing.T) {
 			return nil, sql.ErrNoRows
 		},
 		"expired recently": func(t *testing.T) (*db.Campaign, error) {
-			_, err := db.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(-1*time.Second), 900)
+			_, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(-1*time.Second), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
 			return nil, sql.ErrNoRows
 		},
 		"future": func(t *testing.T) (*db.Campaign, error) {
-			_, err := db.CreateCampaign(time.Now().Add(7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			_, err := database.CreateCampaign(time.Now().Add(7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -116,8 +139,9 @@ func TestActiveCampaign(t *testing.T) {
 	for name, setup := range tests {
 		t.Run(name, func(t *testing.T) {
 			want, wantErr := setup(t)
-			defer reset(t)
-			campaign, err := db.ActiveCampaign()
+			defer database.TestReset(t)
+
+			campaign, err := database.ActiveCampaign()
 			if err := campaignEq(campaign, want); err != nil {
 				t.Errorf("ActiveCampaign() %v", err)
 			}
@@ -128,9 +152,7 @@ func TestActiveCampaign(t *testing.T) {
 	}
 }
 
-func TestGetCampaign(t *testing.T) {
-	reset(t)
-
+func testGetCampaign(t *testing.T, database *db.Database) {
 	// each test case returns the id to search along with the campaign and
 	// error it wants from a call to GetCampaign
 	tests := map[string]func(*testing.T) (int, *db.Campaign, error){
@@ -138,21 +160,21 @@ func TestGetCampaign(t *testing.T) {
 			return 123, nil, sql.ErrNoRows
 		},
 		"expired recently": func(t *testing.T) (int, *db.Campaign, error) {
-			campaign, err := db.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(-1*time.Second), 900)
+			campaign, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(-1*time.Second), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
 			return campaign.ID, campaign, nil
 		},
 		"future": func(t *testing.T) (int, *db.Campaign, error) {
-			campaign, err := db.CreateCampaign(time.Now().Add(7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			campaign, err := database.CreateCampaign(time.Now().Add(7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
 			return campaign.ID, campaign, nil
 		},
 		"active": func(t *testing.T) (int, *db.Campaign, error) {
-			campaign, err := db.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			campaign, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -162,8 +184,8 @@ func TestGetCampaign(t *testing.T) {
 	for name, setup := range tests {
 		t.Run(name, func(t *testing.T) {
 			id, want, wantErr := setup(t)
-			defer reset(t)
-			campaign, err := db.GetCampaign(id)
+			defer database.TestReset(t)
+			campaign, err := database.GetCampaign(id)
 			if err := campaignEq(campaign, want); err != nil {
 				t.Errorf("GetCampaign() %v", err)
 			}
@@ -174,12 +196,21 @@ func TestGetCampaign(t *testing.T) {
 	}
 }
 
-func TestCreateOrder_valid(t *testing.T) {
-	reset(t)
+func testCreateOrder(t *testing.T, database *db.Database) {
+	t.Run("valid", func(t *testing.T) {
+		database.TestReset(t)
+		testCreateOrder_valid(t, database)
+	})
+	// t.Run("invalid", func(t *testing.T) {
+	// 	database.TestReset(t)
+	// 	testCreateOrder_invalid(t, database)
+	// })
+}
 
+func testCreateOrder_valid(t *testing.T, database *db.Database) {
 	tests := map[string]func(*testing.T) db.Order{
 		"valid": func(t *testing.T) db.Order {
-			campaign, err := db.CreateCampaign(time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour), 1000)
+			campaign, err := database.CreateCampaign(time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour), 1000)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -194,12 +225,12 @@ func TestCreateOrder_valid(t *testing.T) {
 	for name, setup := range tests {
 		t.Run(name, func(t *testing.T) {
 			want := setup(t)
-			defer reset(t)
+			defer database.TestReset(t)
 
-			nBefore := count(t, "orders")
+			nBefore := database.TestCount(t, "orders")
 
 			created := want
-			err := db.CreateOrder(&created)
+			err := database.CreateOrder(&created)
 			if err != nil {
 				t.Fatalf("CreateOrder() err = %v; want nil", err)
 			}
@@ -211,12 +242,12 @@ func TestCreateOrder_valid(t *testing.T) {
 				t.Errorf("CreateOrder() = %v; want %v", created, want)
 			}
 
-			nAfter := count(t, "orders")
+			nAfter := database.TestCount(t, "orders")
 			if diff := nAfter - nBefore; diff != 1 {
 				t.Fatalf("CreateOrder() increased order count by %d; want %d", diff, 1)
 			}
 
-			got, err := db.GetOrderViaPayCus(want.Payment.CustomerID)
+			got, err := database.GetOrderViaPayCus(want.Payment.CustomerID)
 			if err != nil {
 				t.Fatalf("GetOrderViaPayCus() err = %v; want nil", err)
 			}
@@ -234,8 +265,7 @@ const (
 	pqForeignKeyCode = "23503"
 )
 
-func TestCreateOrder_invalid(t *testing.T) {
-	reset(t)
+func testCreateOrder_invalid(t *testing.T, database *db.Database) {
 	type checkFn func(error) error
 
 	checkPqError := func(code pq.ErrorCode) func(error) error {
@@ -265,22 +295,22 @@ func TestCreateOrder_invalid(t *testing.T) {
 	for name, setup := range tests {
 		t.Run(name, func(t *testing.T) {
 			order, checks := setup(t)
-			defer reset(t)
+			defer database.TestReset(t)
 
-			nBefore := count(t, "orders")
+			nBefore := database.TestCount(t, "orders")
 			created := order
-			createErr := db.CreateOrder(&created)
+			createErr := database.CreateOrder(&created)
 			for _, check := range checks {
 				if err := check(createErr); err != nil {
 					t.Errorf("CreateOrder() %v", err)
 				}
 			}
-			nAfter := count(t, "orders")
+			nAfter := database.TestCount(t, "orders")
 			if diff := nAfter - nBefore; diff != 0 {
 				t.Fatalf("CreateOrder() increased order count by %d; want %d", diff, 0)
 			}
 
-			got, err := db.GetOrderViaPayCus(order.Payment.CustomerID)
+			got, err := database.GetOrderViaPayCus(order.Payment.CustomerID)
 			if err != sql.ErrNoRows {
 				t.Fatalf("GetOrderViaPayCus() err = %v; want %v", err, sql.ErrNoRows)
 			}
@@ -291,9 +321,7 @@ func TestCreateOrder_invalid(t *testing.T) {
 	}
 }
 
-func TestGetOrderViaPayCus(t *testing.T) {
-	reset(t)
-
+func testGetOrderViaPayCus(t *testing.T, database *db.Database) {
 	// each test case returns the id to search along with the campaign and
 	// error it wants from a call to GetCampaign
 	tests := map[string]func(*testing.T) (string, *db.Order, error){
@@ -301,7 +329,7 @@ func TestGetOrderViaPayCus(t *testing.T) {
 			return "fake_id", nil, sql.ErrNoRows
 		},
 		"expired campaign": func(t *testing.T) (string, *db.Order, error) {
-			campaign, err := db.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(-1*time.Second), 900)
+			campaign, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(-1*time.Second), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -312,14 +340,14 @@ func TestGetOrderViaPayCus(t *testing.T) {
 				Payment:    testPayment(),
 			}
 			order.Payment.CustomerID = "cus_123abc"
-			err = db.CreateOrder(&order)
+			err = database.CreateOrder(&order)
 			if err != nil {
 				t.Fatalf("CreateOrder() err = %v; want nil", err)
 			}
 			return order.Payment.CustomerID, &order, nil
 		},
 		"future campaign": func(t *testing.T) (string, *db.Order, error) {
-			campaign, err := db.CreateCampaign(time.Now().Add(7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			campaign, err := database.CreateCampaign(time.Now().Add(7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -330,14 +358,14 @@ func TestGetOrderViaPayCus(t *testing.T) {
 				Payment:    testPayment(),
 			}
 			order.Payment.CustomerID = "cus_888zzz"
-			err = db.CreateOrder(&order)
+			err = database.CreateOrder(&order)
 			if err != nil {
 				t.Fatalf("CreateOrder() err = %v; want nil", err)
 			}
 			return order.Payment.CustomerID, &order, nil
 		},
 		"active campaign": func(t *testing.T) (string, *db.Order, error) {
-			campaign, err := db.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			campaign, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
 			if err != nil {
 				t.Fatalf("CreateCampaign() err = %v; want nil", err)
 			}
@@ -348,7 +376,7 @@ func TestGetOrderViaPayCus(t *testing.T) {
 				Payment:    testPayment(),
 			}
 			order.Payment.CustomerID = "non_cus_prefixed_string"
-			err = db.CreateOrder(&order)
+			err = database.CreateOrder(&order)
 			if err != nil {
 				t.Fatalf("CreateOrder() err = %v; want nil", err)
 			}
@@ -358,8 +386,8 @@ func TestGetOrderViaPayCus(t *testing.T) {
 	for name, setup := range tests {
 		t.Run(name, func(t *testing.T) {
 			id, want, wantErr := setup(t)
-			defer reset(t)
-			order, err := db.GetOrderViaPayCus(id)
+			defer database.TestReset(t)
+			order, err := database.GetOrderViaPayCus(id)
 			if err != wantErr {
 				t.Fatalf("GetOrderViaPayCus() err = %v; want %v", err, wantErr)
 			}
@@ -427,24 +455,4 @@ func testPayment() db.Payment {
 		Source:     "stripe",
 		CustomerID: "cus_123abc",
 	}
-}
-
-func reset(t *testing.T) {
-	_, err := db.DB.Exec("DELETE FROM orders")
-	if err != nil {
-		t.Fatalf("reset failed: %v", err)
-	}
-	_, err = db.DB.Exec("DELETE FROM campaigns")
-	if err != nil {
-		t.Fatalf("reset failed: %v", err)
-	}
-}
-
-func count(t *testing.T, table string) int {
-	var n int
-	err := db.DB.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&n)
-	if err != nil {
-		t.Fatalf("Scan() err = %v; want nil", err)
-	}
-	return n
 }
