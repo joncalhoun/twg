@@ -15,6 +15,7 @@ import (
 	"github.com/joncalhoun/twg/form"
 	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
+	swaghttp "github.com/joncalhoun/twg/swag/http"
 	"github.com/joncalhoun/twg/swag/urlpath"
 )
 
@@ -62,12 +63,12 @@ func init() {
 func main() {
 	defer db.DB.Close()
 
-	app := &App{}
-	app.DB = db.DefaultDatabase
-	app.Logger = log.New(os.Stdout, "", log.LstdFlags)
-	app.Templates.Campaigns.Show = templates.Campaigns.Show
-	app.Templates.Campaigns.Ended = template.Must(template.ParseFiles("./templates/ended_campaign.gohtml"))
-	app.TimeNow = time.Now
+	campaignHandler := swaghttp.CampaignHandler{}
+	campaignHandler.DB = db.DefaultDatabase
+	campaignHandler.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	campaignHandler.Templates.Show = templates.Campaigns.Show
+	campaignHandler.Templates.Ended = template.Must(template.ParseFiles("./templates/ended_campaign.gohtml"))
+	campaignHandler.TimeNow = time.Now
 
 	db.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
 
@@ -81,7 +82,7 @@ func main() {
 		r.URL.Path = urlpath.Clean(r.URL.Path)
 		resourceMux.ServeHTTP(w, r)
 	})
-	resourceMux.HandleFunc("/", app.ShowActiveCampaign)
+	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
 	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux()))
 	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux()))
 
