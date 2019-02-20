@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -64,6 +62,13 @@ func init() {
 func main() {
 	defer db.DB.Close()
 
+	app := &App{}
+	app.DB = db.DefaultDatabase
+	app.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	app.Templates.Campaigns.Show = templates.Campaigns.Show
+	app.Templates.Campaigns.Ended = template.Must(template.ParseFiles("./templates/ended_campaign.gohtml"))
+	app.TimeNow = time.Now
+
 	db.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
 
 	mux := http.NewServeMux()
@@ -76,7 +81,7 @@ func main() {
 		r.URL.Path = urlpath.Clean(r.URL.Path)
 		resourceMux.ServeHTTP(w, r)
 	})
-	resourceMux.HandleFunc("/", showActiveCampaign)
+	resourceMux.HandleFunc("/", app.ShowActiveCampaign)
 	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux()))
 	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux()))
 
@@ -151,50 +156,6 @@ func campaignsMux() http.Handler {
 		r.URL.Path = path
 		cmpMux.ServeHTTP(w, r)
 	})
-}
-
-func showActiveCampaign(w http.ResponseWriter, r *http.Request) {
-	campaign, err := db.ActiveCampaign()
-	switch {
-	case err == sql.ErrNoRows:
-		showCampaignEnded(w, r)
-		return
-	case err != nil:
-		log.Printf("Error retrieving the active campaign. err = %v", err)
-		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
-		return
-	}
-
-	var leftValue int
-	var leftUnit string
-	left := time.Now().Sub(campaign.EndsAt)
-	switch {
-	case left >= 24*time.Hour:
-		leftValue = int(left / (24 * time.Hour))
-		leftUnit = "day(s)"
-	case left >= time.Hour:
-		leftValue = int(left / time.Hour)
-		leftUnit = "hour(s)"
-	case left >= time.Minute:
-		leftValue = int(left / time.Minute)
-		leftUnit = "minute(s)"
-	}
-	data := struct {
-		ID       int
-		Price    int
-		TimeLeft struct {
-			Value int
-			Unit  string
-		}
-	}{}
-	data.ID = campaign.ID
-	data.Price = campaign.Price / 100
-	data.TimeLeft.Value = leftValue
-	data.TimeLeft.Unit = leftUnit
-	err = templates.Campaigns.Show.Execute(w, data)
-	if err != nil {
-		log.Printf("Error executing show_campaign template. err = %v", err)
-	}
 }
 
 type orderForm struct {
@@ -370,14 +331,4 @@ func confirmOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/orders/%s", order.Payment.CustomerID), http.StatusFound)
-}
-
-func showCampaignEnded(w http.ResponseWriter, r *http.Request) {
-	f, err := os.Open("./assets/html/campaign-ended.html")
-	if err != nil {
-		log.Printf("Error opening the campaign ended file. err = %v", err)
-		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
-		return
-	}
-	io.Copy(w, f)
 }
