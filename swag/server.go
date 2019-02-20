@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/joncalhoun/twg/form"
 	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
+	"github.com/joncalhoun/twg/swag/urlpath"
 )
 
 var (
@@ -73,7 +73,7 @@ func main() {
 	mux.Handle("/css/", fs)
 	mux.Handle("/favicon.ico", http.FileServer(http.Dir("./assets/img/")))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = cleanPath(r.URL.Path)
+		r.URL.Path = urlpath.Clean(r.URL.Path)
 		resourceMux.ServeHTTP(w, r)
 	})
 	resourceMux.HandleFunc("/", showActiveCampaign)
@@ -99,7 +99,7 @@ func ordersMux() http.Handler {
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		payCusID, path := splitPath(r.URL.Path)
+		payCusID, path := urlpath.Split(r.URL.Path)
 		order, err := db.GetOrderViaPayCus(payCusID)
 		if err != nil {
 			http.NotFound(w, r)
@@ -135,7 +135,7 @@ func campaignsMux() http.Handler {
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idStr, path := splitPath(r.URL.Path)
+		idStr, path := urlpath.Split(r.URL.Path)
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			http.NotFound(w, r)
@@ -151,23 +151,6 @@ func campaignsMux() http.Handler {
 		r.URL.Path = path
 		cmpMux.ServeHTTP(w, r)
 	})
-}
-
-func cleanPath(pth string) string {
-	pth = path.Clean("/" + pth)
-	if pth[len(pth)-1] != '/' {
-		pth = pth + "/"
-	}
-	return pth
-}
-
-func splitPath(pth string) (head, tail string) {
-	pth = cleanPath(pth)
-	parts := strings.SplitN(pth[1:], "/", 2)
-	if len(parts) < 2 {
-		parts = append(parts, "/")
-	}
-	return parts[0], cleanPath(parts[1])
 }
 
 func showActiveCampaign(w http.ResponseWriter, r *http.Request) {
