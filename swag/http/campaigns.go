@@ -54,6 +54,9 @@ func (ch *CampaignHandler) ShowActive(w http.ResponseWriter, r *http.Request) {
 	case left >= time.Minute:
 		leftValue = int(left / time.Minute)
 		leftUnit = "minute(s)"
+	default:
+		leftValue = int(left / time.Second)
+		leftUnit = "second(s)"
 	}
 	data := struct {
 		ID       int
