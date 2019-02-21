@@ -32,7 +32,12 @@ type OrderHandler struct {
 
 func (oh *OrderHandler) New(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	campaign := r.Context().Value("campaign").(*db.Campaign)
+	// campaign := r.Context().Value("campaign").(*db.Campaign)
+	campaign, ok := r.Context().Value("campaign").(*db.Campaign)
+	if !ok {
+		http.Error(w, "Campaign not provided.", http.StatusInternalServerError)
+		return
+	}
 
 	data := struct {
 		Campaign struct {
@@ -43,7 +48,7 @@ func (oh *OrderHandler) New(w http.ResponseWriter, r *http.Request) {
 		StripePublicKey string
 	}{}
 	data.Campaign.ID = campaign.ID
-	data.Campaign.Price = campaign.Price
+	data.Campaign.Price = campaign.Price / 100
 	data.StripePublicKey = oh.StripePublicKey
 	err := oh.Templates.New.Execute(w, data)
 	if err != nil {
