@@ -19,9 +19,7 @@ type CampaignHandler struct {
 		ActiveCampaign() (*db.Campaign, error)
 		GetCampaign(int) (*db.Campaign, error)
 	}
-	Logger interface {
-		Printf(format string, v ...interface{})
-	}
+	Logger    Logger
 	Templates struct {
 		Show  *template.Template
 		Ended *template.Template

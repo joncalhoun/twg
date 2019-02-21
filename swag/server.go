@@ -62,12 +62,18 @@ func init() {
 func main() {
 	defer db.DB.Close()
 
+	logger := log.New(os.Stdout, "", log.LstdFlags)
 	campaignHandler := swaghttp.CampaignHandler{}
 	campaignHandler.DB = db.DefaultDatabase
-	campaignHandler.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	campaignHandler.Logger = logger
 	campaignHandler.Templates.Show = templates.Campaigns.Show
 	campaignHandler.Templates.Ended = template.Must(template.ParseFiles("./templates/ended_campaign.gohtml"))
 	campaignHandler.TimeNow = time.Now
+
+	orderHandler := swaghttp.OrderHandler{}
+	orderHandler.Logger = logger
+	orderHandler.StripePublicKey = stripePublicKey
+	orderHandler.Templates.New = templates.Orders.New
 
 	db.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
 
@@ -82,7 +88,7 @@ func main() {
 		resourceMux.ServeHTTP(w, r)
 	})
 	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
-	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw)))
+	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw, orderHandler.New)))
 	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux()))
 
 	port := os.Getenv("SWAG_PORT")
@@ -117,7 +123,7 @@ func ordersMux() http.Handler {
 	})
 }
 
-func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc) http.Handler {
+func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder http.HandlerFunc) http.Handler {
 	// Paths like /campaigns/:id/orders/new are handled here, but most of
 	// that path - the /campaigns/:id/orders part - is stripped and
 	// processed beforehand.
@@ -140,42 +146,6 @@ func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc) http.Handl
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
 	return campaignMw(cmpMux.ServeHTTP)
-}
-
-type orderForm struct {
-	Customer struct {
-		Name  string `form:"placeholder=Jane Doe"`
-		Email string `form:"type=email;placeholder=jane@doe.com;label=Email Address"`
-	}
-	Address struct {
-		Street1 string `form:"placeholder=123 Sticker St;label=Street 1"`
-		Street2 string `form:"placeholder=Apt 45;label=Street 2"`
-		City    string `form:"placeholder=San Francisco"`
-		State   string `form:"label=State (or Province);placeholder=CA"`
-		Zip     string `form:"label=Postal Code;placeholder=94139"`
-		Country string `form:"placeholder=United States"`
-	}
-}
-
-func newOrder(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	campaign := r.Context().Value("campaign").(*db.Campaign)
-
-	data := struct {
-		Campaign struct {
-			ID    int
-			Price int
-		}
-		OrderForm       orderForm
-		StripePublicKey string
-	}{}
-	data.Campaign.ID = campaign.ID
-	data.Campaign.Price = campaign.Price
-	data.StripePublicKey = stripePublicKey
-	err := templates.Orders.New.Execute(w, data)
-	if err != nil {
-		log.Printf("Error executing the new_order template. err = %v", err)
-	}
 }
 
 func createOrder(w http.ResponseWriter, r *http.Request) {
