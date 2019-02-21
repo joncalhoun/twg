@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -83,7 +82,7 @@ func main() {
 		resourceMux.ServeHTTP(w, r)
 	})
 	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
-	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux()))
+	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw)))
 	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux()))
 
 	port := os.Getenv("SWAG_PORT")
@@ -118,7 +117,7 @@ func ordersMux() http.Handler {
 	})
 }
 
-func campaignsMux() http.Handler {
+func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc) http.Handler {
 	// Paths like /campaigns/:id/orders/new are handled here, but most of
 	// that path - the /campaigns/:id/orders part - is stripped and
 	// processed beforehand.
@@ -140,23 +139,7 @@ func campaignsMux() http.Handler {
 
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		idStr, path := urlpath.Split(r.URL.Path)
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		campaign, err := db.GetCampaign(id)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		ctx := context.WithValue(r.Context(), "campaign", campaign)
-		r = r.WithContext(ctx)
-		r.URL.Path = path
-		cmpMux.ServeHTTP(w, r)
-	})
+	return campaignMw(cmpMux.ServeHTTP)
 }
 
 type orderForm struct {
