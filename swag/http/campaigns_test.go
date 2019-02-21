@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	stdhttp "net/http"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/joncalhoun/twg/swag/db"
-	"github.com/joncalhoun/twg/swag/http"
+	. "github.com/joncalhoun/twg/swag/http"
 )
 
 type logRec struct {
@@ -55,8 +55,8 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 
 	// each test case returns a campaign handler along with the expected
 	// body output as a string
-	tests := map[string]func(*testing.T) (*http.CampaignHandler, []checkFn){
-		"ID is 12": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+	tests := map[string]func(*testing.T) (*CampaignHandler, []checkFn){
+		"ID is 12": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return &db.Campaign{
@@ -67,13 +67,13 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 					}, nil
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Show = template.Must(template.New("").Parse("{{.ID}}"))
 			return &ch, checks(hasBody("12"))
 		},
-		"Price is 10": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"Price is 10": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return &db.Campaign{
@@ -84,13 +84,13 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 					}, nil
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Show = template.Must(template.New("").Parse("{{.Price}}"))
 			return &ch, checks(hasBody("10"))
 		},
-		"1 hour left": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"1 hour left": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return &db.Campaign{
@@ -101,13 +101,13 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 					}, nil
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Show = template.Must(template.New("").Parse("{{.TimeLeft.Value}} {{.TimeLeft.Unit}}"))
 			return &ch, checks(hasBody("1 hour(s)"))
 		},
-		"2 min left": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"2 min left": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return &db.Campaign{
@@ -118,13 +118,13 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 					}, nil
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Show = template.Must(template.New("").Parse("{{.TimeLeft.Value}} {{.TimeLeft.Unit}}"))
 			return &ch, checks(hasBody("2 minute(s)"))
 		},
-		"3 days left": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"3 days left": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return &db.Campaign{
@@ -135,13 +135,13 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 					}, nil
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Show = template.Must(template.New("").Parse("{{.TimeLeft.Value}} {{.TimeLeft.Unit}}"))
 			return &ch, checks(hasBody("3 day(s)"))
 		},
-		"25 sec left": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"25 sec left": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return &db.Campaign{
@@ -152,31 +152,31 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 					}, nil
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Show = template.Must(template.New("").Parse("{{.TimeLeft.Value}} {{.TimeLeft.Unit}}"))
 			return &ch, checks(hasBody("25 second(s)"))
 		},
-		"no active campaign": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"no active campaign": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return nil, sql.ErrNoRows
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			ch.Templates.Ended = template.Must(template.New("").Parse("No Active Campaign"))
 			return &ch, checks(hasBody("No Active Campaign"))
 		},
-		"random sql error": func(t *testing.T) (*http.CampaignHandler, []checkFn) {
+		"random sql error": func(t *testing.T) (*CampaignHandler, []checkFn) {
 			mdb := &mockDB{
 				ActiveCampaignFunc: func() (*db.Campaign, error) {
 					return nil, sql.ErrConnDone
 				},
 			}
-			ch := http.CampaignHandler{}
+			ch := CampaignHandler{}
 			ch.DB = mdb
 			ch.TimeNow = timeNow
 			lr := &logRec{}
@@ -200,7 +200,7 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 			ch, checks := tc(t)
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest(stdhttp.MethodGet, "/", nil)
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
 			ch.ShowActive(w, r)
 			res := w.Result()
 			resBody, err := ioutil.ReadAll(res.Body)
@@ -215,4 +215,82 @@ func TestCampaignHandler_ShowActive(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCampaignHandler_CampaignMw(t *testing.T) {
+	failHandler := func(t *testing.T) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			t.Fatalf("next handler shouldn't have been called by middleware")
+		}
+	}
+	// Three paths:
+	// 1. Invalid ID
+	// 2. Can't find campaign or DB error
+	// 3. Success
+	t.Run("invalid id", func(t *testing.T) {
+		ch := CampaignHandler{}
+		handler := ch.CampaignMw(failHandler(t))
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/invalid/id/here", nil)
+		handler(w, r)
+		res := w.Result()
+		if res.StatusCode != http.StatusNotFound {
+			t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusNotFound)
+		}
+	})
+
+	t.Run("missing campaign", func(t *testing.T) {
+		ch := CampaignHandler{}
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				return nil, sql.ErrNoRows
+			},
+		}
+		ch.DB = mdb
+		handler := ch.CampaignMw(failHandler(t))
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/123/id/here", nil)
+		handler(w, r)
+		res := w.Result()
+		if res.StatusCode != http.StatusNotFound {
+			t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusNotFound)
+		}
+	})
+
+	t.Run("campaign found", func(t *testing.T) {
+		campaign := &db.Campaign{
+			ID:       123,
+			StartsAt: time.Now(),
+			EndsAt:   time.Now().Add(1 * time.Hour),
+			Price:    1200,
+		}
+		ch := CampaignHandler{}
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				return campaign, nil
+			},
+		}
+		ch.DB = mdb
+		handlerCalled := false
+		handler := ch.CampaignMw(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+			if r.URL.Path != "/id/here/" {
+				t.Fatalf("Path in next handler = %v; want %v", r.URL.Path, "/id/here/")
+			}
+			got := r.Context().Value("campaign").(*db.Campaign)
+			if got != campaign {
+				t.Fatalf("Campaign = %v; want %v", got, campaign)
+			}
+		})
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/123/id/here", nil)
+		handler(w, r)
+		res := w.Result()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusOK)
+		}
+		if !handlerCalled {
+			t.Fatalf("next handler not called")
+		}
+	})
 }
