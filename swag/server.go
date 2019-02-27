@@ -7,10 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/gorilla/schema"
 	"github.com/joncalhoun/twg/form"
 	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
@@ -63,6 +61,9 @@ func main() {
 	defer db.DB.Close()
 
 	logger := log.New(os.Stdout, "", log.LstdFlags)
+	stripeClient := &stripe.Client{
+		Key: stripeSecretKey,
+	}
 	campaignHandler := swaghttp.CampaignHandler{}
 	campaignHandler.DB = db.DefaultDatabase
 	campaignHandler.Logger = logger
@@ -71,8 +72,10 @@ func main() {
 	campaignHandler.TimeNow = time.Now
 
 	orderHandler := swaghttp.OrderHandler{}
+	orderHandler.DB = db.DefaultDatabase
 	orderHandler.Logger = logger
-	orderHandler.StripePublicKey = stripePublicKey
+	orderHandler.Stripe.PublicKey = stripePublicKey
+	orderHandler.Stripe.Client = stripeClient
 	orderHandler.Templates.New = templates.Orders.New
 
 	db.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
@@ -88,7 +91,7 @@ func main() {
 		resourceMux.ServeHTTP(w, r)
 	})
 	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
-	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw, orderHandler.New)))
+	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw, orderHandler.New, orderHandler.Create)))
 	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux()))
 
 	port := os.Getenv("SWAG_PORT")
@@ -123,7 +126,7 @@ func ordersMux() http.Handler {
 	})
 }
 
-func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder http.HandlerFunc) http.Handler {
+func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder, createOrder http.HandlerFunc) http.Handler {
 	// Paths like /campaigns/:id/orders/new are handled here, but most of
 	// that path - the /campaigns/:id/orders part - is stripped and
 	// processed beforehand.
@@ -146,68 +149,6 @@ func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder h
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
 	return campaignMw(cmpMux.ServeHTTP)
-}
-
-func createOrder(w http.ResponseWriter, r *http.Request) {
-	campaign := r.Context().Value("campaign").(*db.Campaign)
-	formData := struct {
-		Name    string
-		Email   string
-		Street1 string
-		Street2 string
-		City    string
-		State   string
-		Zip     string
-		Country string
-	}{}
-	r.ParseForm()
-	schema.NewDecoder().Decode(&formData, r.PostForm)
-	fmt.Println(formData)
-	if formData.Email == "" {
-		panic("email wasn't parsed!")
-	}
-	stripeClient := &stripe.Client{
-		Key: stripeSecretKey,
-	}
-	cus, err := stripeClient.Customer(r.PostForm.Get("stripe-token"), formData.Email)
-	if err != nil {
-		log.Printf("Error creating stripe customer. email = %s, err = %v", formData.Email, err)
-		http.Error(w, "Something went wrong processing your payment information. Try again, or contact me - jon@calhoun.io - if the problem persists.", http.StatusInternalServerError)
-		return
-	}
-	var order db.Order
-	order.CampaignID = campaign.ID
-	// Customer
-	order.Customer.Name = formData.Name
-	order.Customer.Email = formData.Email
-	// Address
-	order.Address.Street1 = formData.Street1
-	order.Address.Street2 = formData.Street2
-	order.Address.City = formData.City
-	order.Address.State = formData.State
-	order.Address.Zip = formData.Zip
-	order.Address.Country = formData.Country
-	order.Address.Raw = fmt.Sprintf(`%s
-%s
-%s
-%s %s  %s
-%s`, order.Customer.Name,
-		order.Address.Street1,
-		order.Address.Street2,
-		order.Address.City, order.Address.State, order.Address.Zip,
-		order.Address.Country)
-	order.Address.Raw = strings.Replace(order.Address.Raw, "\n\n", "\n", 1)
-	order.Address.Raw = strings.ToUpper(order.Address.Raw)
-
-	// Payment info
-	order.Payment.Source = "stripe"
-	order.Payment.CustomerID = cus.ID
-	err = db.CreateOrder(&order)
-	if err != nil {
-		http.Error(w, "Something went wrong...", http.StatusBadRequest)
-		return
-	}
-	http.Redirect(w, r, fmt.Sprintf("/orders/%s", order.Payment.CustomerID), http.StatusFound)
 }
 
 func showOrder(w http.ResponseWriter, r *http.Request) {

@@ -56,13 +56,12 @@ func TestOrderHandler_New(t *testing.T) {
 			}, checks(hasBody("12"))
 		},
 		"stripe public key": func(t *testing.T) (*OrderHandler, *db.Campaign, []checkFn) {
-			oh := OrderHandler{
-				StripePublicKey: "sk_pub_123abc",
-			}
+			oh := OrderHandler{}
+			oh.Stripe.PublicKey = "sk_pub_123abc"
 			oh.Templates.New = template.Must(template.New("").Parse("{{.StripePublicKey}}"))
 			return &oh, &db.Campaign{
 				Price: 1200,
-			}, checks(hasBody(oh.StripePublicKey))
+			}, checks(hasBody(oh.Stripe.PublicKey))
 		},
 		"campaign is not set": func(t *testing.T) (*OrderHandler, *db.Campaign, []checkFn) {
 			oh := OrderHandler{}
