@@ -2,13 +2,16 @@ package http_test
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
+	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
 	. "github.com/joncalhoun/twg/swag/http"
 )
@@ -85,4 +88,56 @@ func TestOrderHandler_New(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOrderHandler_Create(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		oh := OrderHandler{}
+		oh.DB = &mockDB{
+			CreateOrderFunc: func(order *db.Order) error {
+				order.ID = 123
+				return nil
+			},
+		}
+		formData := url.Values{
+			"Name":         []string{"Jon Calhoun"},
+			"Email":        []string{"jon@calhoun.io"},
+			"stripe-token": []string{"fake-stripe-token"},
+		}
+		stripeCustomerID := "cus_abc123"
+		oh.Stripe.Client = &mockStripe{
+			CustomerFunc: func(token, email string) (*stripe.Customer, error) {
+				if token != formData.Get("stripe-token") {
+					t.Fatalf("token = %s; want %s", token, formData.Get("stripe-token"))
+				}
+				if email != formData.Get("Email") {
+					t.Fatalf("email = %s; want %s", email, formData.Get("Email"))
+				}
+				return &stripe.Customer{
+					ID: stripeCustomerID,
+				}, nil
+			},
+		}
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/orders", strings.NewReader(formData.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r = r.WithContext(context.WithValue(r.Context(), "campaign", &db.Campaign{
+			ID: 333,
+		}))
+		oh.Create(w, r)
+		res := w.Result()
+		if res.StatusCode != http.StatusFound {
+			t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusFound)
+		}
+		locURL, err := res.Location()
+		if err != nil {
+			t.Fatalf("Location() err = %v; want %v", err, nil)
+		}
+		gotLoc := locURL.Path
+		wantLoc := fmt.Sprintf("/orders/%s", stripeCustomerID)
+		if gotLoc != wantLoc {
+			t.Fatalf("Redirect location = %s; want %s", gotLoc, wantLoc)
+		}
+	})
 }
