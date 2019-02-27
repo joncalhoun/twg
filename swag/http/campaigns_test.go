@@ -15,27 +15,6 @@ import (
 	. "github.com/joncalhoun/twg/swag/http"
 )
 
-type logRec struct {
-	logs []string
-}
-
-func (lr *logRec) Printf(format string, v ...interface{}) {
-	lr.logs = append(lr.logs, fmt.Sprintf(format, v...))
-}
-
-type mockDB struct {
-	ActiveCampaignFunc func() (*db.Campaign, error)
-	GetCampaignFunc    func(int) (*db.Campaign, error)
-}
-
-func (mdb *mockDB) ActiveCampaign() (*db.Campaign, error) {
-	return mdb.ActiveCampaignFunc()
-}
-
-func (mdb *mockDB) GetCampaign(id int) (*db.Campaign, error) {
-	return mdb.GetCampaignFunc(id)
-}
-
 func TestCampaignHandler_ShowActive(t *testing.T) {
 	now := time.Now()
 	timeNow := func() time.Time {
