@@ -48,9 +48,14 @@ func (mdb *mockDB) GetOrderViaPayCus(payCustomerID string) (*db.Order, error) {
 }
 
 type mockStripe struct {
-	CustomerFunc func(token, email string) (*stripe.Customer, error)
+	CustomerFunc  func(token, email string) (*stripe.Customer, error)
+	GetChargeFunc func(chargeID string) (*stripe.Charge, error)
 }
 
 func (ms *mockStripe) Customer(token, email string) (*stripe.Customer, error) {
 	return ms.CustomerFunc(token, email)
+}
+
+func (ms *mockStripe) GetCharge(chargeID string) (*stripe.Charge, error) {
+	return ms.GetChargeFunc(chargeID)
 }

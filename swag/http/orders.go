@@ -32,15 +32,18 @@ type OrderHandler struct {
 	DB interface {
 		CreateOrder(*db.Order) error
 		GetOrderViaPayCus(string) (*db.Order, error)
+		GetCampaign(int) (*db.Campaign, error)
 	}
 	Stripe struct {
 		PublicKey string
 		Client    interface {
 			Customer(token, email string) (*stripe.Customer, error)
+			GetCharge(chargeID string) (*stripe.Charge, error)
 		}
 	}
 	Templates struct {
-		New *template.Template
+		New    *template.Template
+		Review *template.Template
 	}
 	Logger Logger
 }
@@ -145,4 +148,44 @@ func (oh *OrderHandler) OrderMw(next http.HandlerFunc) http.HandlerFunc {
 		r.URL.Path = path
 		next(w, r)
 	}
+}
+
+func (oh *OrderHandler) Show(w http.ResponseWriter, r *http.Request) {
+	order := r.Context().Value("order").(*db.Order)
+	campaign, err := oh.DB.GetCampaign(order.CampaignID)
+	if err != nil {
+		oh.Logger.Printf("error retrieving order campaign\n")
+		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
+		return
+	}
+	if order.Payment.ChargeID != "" {
+		chg, err := oh.Stripe.Client.GetCharge(order.Payment.ChargeID)
+		if err != nil {
+			oh.Logger.Printf("error looking up a customer's charge where chg.ID = %s; err = %v", order.Payment.ChargeID, err)
+			fmt.Fprintln(w, "Failed to lookup the status of your order. Please try again, or contact me if this persists - jon@calhoun.io")
+			return
+		}
+		switch chg.Status {
+		case "succeeded":
+			fmt.Fprintln(w, "Your order has been completed successfully! You will be contacted when it ships.")
+		case "pending":
+			fmt.Fprintln(w, "Your payment is still pending.")
+		case "failed":
+			fmt.Fprintln(w, "Your payment failed. :( Please create a new order with a new card if you want to try again.")
+		}
+		return
+	}
+	data := struct {
+		Order struct {
+			ID      string
+			Address string
+		}
+		Campaign struct {
+			Price int
+		}
+	}{}
+	data.Order.ID = order.Payment.CustomerID
+	data.Order.Address = order.Address.Raw
+	data.Campaign.Price = campaign.Price / 100
+	oh.Templates.Review.Execute(w, data)
 }

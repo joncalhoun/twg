@@ -76,6 +76,7 @@ func main() {
 	orderHandler.Stripe.PublicKey = stripePublicKey
 	orderHandler.Stripe.Client = stripeClient
 	orderHandler.Templates.New = templates.Orders.New
+	orderHandler.Templates.Review = templates.Orders.Review
 
 	db.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
 
@@ -91,7 +92,7 @@ func main() {
 	})
 	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
 	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw, orderHandler.New, orderHandler.Create)))
-	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux(orderHandler.OrderMw)))
+	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux(orderHandler.OrderMw, orderHandler.Show)))
 
 	port := os.Getenv("SWAG_PORT")
 	if port == "" {
@@ -101,7 +102,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
-func ordersMux(orderMw func(http.HandlerFunc) http.HandlerFunc) http.Handler {
+func ordersMux(orderMw func(http.HandlerFunc) http.HandlerFunc, showOrder http.HandlerFunc) http.Handler {
 	// The order mux expects the order to be set in the context
 	// and the ID to be trimmed from the path.
 	ordMux := http.NewServeMux()
@@ -137,49 +138,6 @@ func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder, 
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
 	return campaignMw(cmpMux.ServeHTTP)
-}
-
-func showOrder(w http.ResponseWriter, r *http.Request) {
-	order := r.Context().Value("order").(*db.Order)
-	campaign, err := db.GetCampaign(order.CampaignID)
-	if err != nil {
-		log.Println("error retrieving order campaign")
-		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
-		return
-	}
-	if order.Payment.ChargeID != "" {
-		stripeClient := &stripe.Client{
-			Key: stripeSecretKey,
-		}
-		chg, err := stripeClient.GetCharge(order.Payment.ChargeID)
-		if err != nil {
-			log.Printf("error looking up a customer's charge where chg.ID = %s; err = %v", order.Payment.ChargeID, err)
-			fmt.Fprintln(w, "Failed to lookup the status of your order. Please try again, or contact me if this persists - jon@calhoun.io")
-			return
-		}
-		switch chg.Status {
-		case "succeeded":
-			fmt.Fprintln(w, "Your order has been completed successfully! You will be contacted when it ships.")
-		case "pending":
-			fmt.Fprintln(w, "Your payment is still pending.")
-		case "failed":
-			fmt.Fprintln(w, "Your payment failed. :( Please create a new order with a new card if you want to try again.")
-		}
-		return
-	}
-	data := struct {
-		Order struct {
-			ID      string
-			Address string
-		}
-		Campaign struct {
-			Price int
-		}
-	}{}
-	data.Order.ID = order.Payment.CustomerID
-	data.Order.Address = order.Address.Raw
-	data.Campaign.Price = campaign.Price / 100
-	templates.Orders.Review.Execute(w, data)
 }
 
 func confirmOrder(w http.ResponseWriter, r *http.Request) {
