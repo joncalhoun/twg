@@ -162,6 +162,8 @@ func (oh *OrderHandler) Show(w http.ResponseWriter, r *http.Request) {
 		chg, err := oh.Stripe.Client.GetCharge(order.Payment.ChargeID)
 		if err != nil {
 			oh.Logger.Printf("error looking up a customer's charge where chg.ID = %s; err = %v", order.Payment.ChargeID, err)
+			// This should probably be changed long term to return an error
+			// status code
 			fmt.Fprintln(w, "Failed to lookup the status of your order. Please try again, or contact me if this persists - jon@calhoun.io")
 			return
 		}
