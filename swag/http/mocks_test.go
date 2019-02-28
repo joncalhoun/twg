@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
@@ -13,6 +14,14 @@ type logRec struct {
 
 func (lr *logRec) Printf(format string, v ...interface{}) {
 	lr.logs = append(lr.logs, fmt.Sprintf(format, v...))
+}
+
+type logFail struct {
+	t *testing.T
+}
+
+func (lf *logFail) Printf(format string, v ...interface{}) {
+	lf.t.Fatalf("Printf() called unexpectedly: %s", fmt.Sprintf(format, v...))
 }
 
 type mockDB struct {
