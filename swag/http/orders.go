@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
+	"github.com/joncalhoun/twg/swag/urlpath"
 )
 
 type orderForm struct {
@@ -29,6 +31,7 @@ type orderForm struct {
 type OrderHandler struct {
 	DB interface {
 		CreateOrder(*db.Order) error
+		GetOrderViaPayCus(string) (*db.Order, error)
 	}
 	Stripe struct {
 		PublicKey string
@@ -125,4 +128,21 @@ func (oh *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/orders/%s", order.Payment.CustomerID), http.StatusFound)
+}
+
+// Trim the ID from the path, set the campaign in the ctx, and call
+// the cmpMux.
+func (oh *OrderHandler) OrderMw(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		payCusID, path := urlpath.Split(r.URL.Path)
+		order, err := oh.DB.GetOrderViaPayCus(payCusID)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "order", order)
+		r = r.WithContext(ctx)
+		r.URL.Path = path
+		next(w, r)
+	}
 }

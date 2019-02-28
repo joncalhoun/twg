@@ -25,9 +25,10 @@ func (lf *logFail) Printf(format string, v ...interface{}) {
 }
 
 type mockDB struct {
-	ActiveCampaignFunc func() (*db.Campaign, error)
-	GetCampaignFunc    func(int) (*db.Campaign, error)
-	CreateOrderFunc    func(*db.Order) error
+	ActiveCampaignFunc    func() (*db.Campaign, error)
+	GetCampaignFunc       func(int) (*db.Campaign, error)
+	CreateOrderFunc       func(*db.Order) error
+	GetOrderViaPayCusFunc func(string) (*db.Order, error)
 }
 
 func (mdb *mockDB) ActiveCampaign() (*db.Campaign, error) {
@@ -40,6 +41,10 @@ func (mdb *mockDB) GetCampaign(id int) (*db.Campaign, error) {
 
 func (mdb *mockDB) CreateOrder(order *db.Order) error {
 	return mdb.CreateOrderFunc(order)
+}
+
+func (mdb *mockDB) GetOrderViaPayCus(payCustomerID string) (*db.Order, error) {
+	return mdb.GetOrderViaPayCusFunc(payCustomerID)
 }
 
 type mockStripe struct {

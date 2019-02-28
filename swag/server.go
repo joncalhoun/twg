@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -92,7 +91,7 @@ func main() {
 	})
 	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
 	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw, orderHandler.New, orderHandler.Create)))
-	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux()))
+	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux(orderHandler.OrderMw)))
 
 	port := os.Getenv("SWAG_PORT")
 	if port == "" {
@@ -102,7 +101,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
-func ordersMux() http.Handler {
+func ordersMux(orderMw func(http.HandlerFunc) http.HandlerFunc) http.Handler {
 	// The order mux expects the order to be set in the context
 	// and the ID to be trimmed from the path.
 	ordMux := http.NewServeMux()
@@ -112,18 +111,7 @@ func ordersMux() http.Handler {
 
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		payCusID, path := urlpath.Split(r.URL.Path)
-		order, err := db.GetOrderViaPayCus(payCusID)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		ctx := context.WithValue(r.Context(), "order", order)
-		r = r.WithContext(ctx)
-		r.URL.Path = path
-		ordMux.ServeHTTP(w, r)
-	})
+	return orderMw(ordMux.ServeHTTP)
 }
 
 func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder, createOrder http.HandlerFunc) http.Handler {
