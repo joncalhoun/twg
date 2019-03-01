@@ -212,6 +212,98 @@ func TestOrderHandler_OrderMw(t *testing.T) {
 	})
 }
 
+func testOrderHandler_Show_review(t *testing.T, oh *OrderHandler, campaign *db.Campaign, order *db.Order) {
+	tests := map[string]struct {
+		tpl  *template.Template
+		want func(*db.Order, *db.Campaign) string
+	}{
+		"order id": {
+			tpl: template.Must(template.New("").Parse("{{.Order.ID}}")),
+			want: func(order *db.Order, _ *db.Campaign) string {
+				return order.Payment.CustomerID
+			},
+		},
+		"order address": {
+			tpl: template.Must(template.New("").Parse("{{.Order.Address}}")),
+			want: func(order *db.Order, _ *db.Campaign) string {
+				return order.Address.Raw
+			},
+		},
+		"campaign price": {
+			tpl: template.Must(template.New("").Parse("{{.Campaign.Price}}")),
+			want: func(_ *db.Order, campaign *db.Campaign) string {
+				return fmt.Sprintf("%d", campaign.Price/100)
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			oh.Templates.Review = tc.tpl
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, "/orders/cus_abc123", nil)
+			r = r.WithContext(context.WithValue(r.Context(), "order", order))
+			oh.Show(w, r)
+			res := w.Result()
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusOK)
+			}
+			defer res.Body.Close()
+			body, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				t.Fatalf("ReadAll() err = %v; want %v", err, nil)
+			}
+			gotBody := string(body)
+			wantBody := tc.want(order, campaign)
+			if gotBody != wantBody {
+				t.Fatalf("Body = %v; want %v", gotBody, wantBody)
+			}
+		})
+	}
+}
+
+// Another way to run tests similar to the ones in TestOrderHandler_Show
+func TestOrderHandler_Show_tableDemo(t *testing.T) {
+	tests := map[string]func(*testing.T, *OrderHandler, *db.Campaign, *db.Order){
+		"review - campaign found": testOrderHandler_Show_review,
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			oh := &OrderHandler{}
+			campaign := &db.Campaign{
+				ID:    999,
+				Price: 1000,
+			}
+			order := &db.Order{
+				ID:         123,
+				CampaignID: campaign.ID,
+				Address: db.Address{
+					Raw: `JON CALHOUN
+PO BOX 295
+BEDFORD PA  15522
+UNITED STATES`,
+				},
+				Payment: db.Payment{
+					CustomerID: "cus_abc123",
+					Source:     "stripe",
+				},
+			}
+			mdb := &mockDB{
+				GetCampaignFunc: func(id int) (*db.Campaign, error) {
+					if id == campaign.ID {
+						return campaign, nil
+					}
+					return nil, sql.ErrNoRows
+				},
+			}
+			oh.DB = mdb
+			oh.Logger = &logRec{}
+
+			tc(t, oh, campaign, order)
+		})
+	}
+}
+
 func TestOrderHandler_Show(t *testing.T) {
 	t.Run("review - campaign found", func(t *testing.T) {
 		tests := map[string]struct {
