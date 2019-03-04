@@ -4,6 +4,7 @@ package http_test
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"io/ioutil"
 	"net/http"
@@ -172,4 +173,102 @@ func TestOrderHandler_Create_stripeInt(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOrderHandler_Show_stripeInt(t *testing.T) {
+	if stripeSecretKey == "" {
+		t.Skip("stripe secret key not provided")
+	}
+
+	t.Run("charged", func(t *testing.T) {
+		price := 1000
+
+		tests := map[string]struct {
+			chgID    func(*testing.T, *stripe.Client) string
+			wantCode int
+			wantBody string
+		}{
+			"succeeded": {
+				chgID: func(t *testing.T, sc *stripe.Client) string {
+					cus, err := sc.Customer("tok_visa", "success@gopherswag.com")
+					if err != nil {
+						t.Fatalf("Customer() err = %v; want %v", err, nil)
+					}
+					chg, err := sc.Charge(cus.ID, price)
+					if err != nil {
+						t.Fatalf("Charge() err = %v; want %v", err, nil)
+					}
+					return chg.ID
+				},
+				wantCode: http.StatusOK,
+				wantBody: "Your order has been completed successfully!",
+			},
+			"error getting charge": {
+				chgID: func(*testing.T, *stripe.Client) string {
+					return "chg_fake_id"
+				},
+				// This should probably be changed long term to return an error
+				// status code.
+				wantCode: http.StatusOK,
+				wantBody: "Failed to lookup the status of your order.",
+			},
+		}
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				oh := OrderHandler{}
+				sc := &stripe.Client{
+					Key: stripeSecretKey,
+				}
+				oh.Stripe.Client = sc
+				campaign := &db.Campaign{
+					ID:    999,
+					Price: price,
+				}
+				chgID := tc.chgID(t, sc)
+				order := &db.Order{
+					ID:         123,
+					CampaignID: campaign.ID,
+					Address: db.Address{
+						Raw: `JON CALHOUN
+PO BOX 295
+BEDFORD PA  15522
+UNITED STATES`,
+					},
+					Payment: db.Payment{
+						ChargeID:   chgID,
+						CustomerID: "cus_abc123",
+						Source:     "stripe",
+					},
+				}
+				mdb := &mockDB{
+					GetCampaignFunc: func(id int) (*db.Campaign, error) {
+						if id == campaign.ID {
+							return campaign, nil
+						}
+						return nil, sql.ErrNoRows
+					},
+				}
+				oh.DB = mdb
+				oh.Logger = &logRec{}
+
+				w := httptest.NewRecorder()
+				r := httptest.NewRequest(http.MethodGet, "/orders/cus_abc123", nil)
+				r = r.WithContext(context.WithValue(r.Context(), "order", order))
+				oh.Show(w, r)
+				res := w.Result()
+				if res.StatusCode != tc.wantCode {
+					t.Fatalf("StatusCode = %d; want %d", res.StatusCode, tc.wantCode)
+				}
+				defer res.Body.Close()
+				body, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("ReadAll() err = %v; want %v", err, nil)
+				}
+				gotBody := string(body)
+				if !strings.Contains(gotBody, tc.wantBody) {
+					t.Fatalf("Body = %v; want substring %v", gotBody, tc.wantBody)
+				}
+			})
+		}
+	})
 }
