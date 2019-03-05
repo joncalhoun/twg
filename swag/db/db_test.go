@@ -45,6 +45,7 @@ func TestDatabase(t *testing.T) {
 		"GetCampaign":       testGetCampaign,
 		"CreateOrder":       testCreateOrder,
 		"GetOrderViaPayCus": testGetOrderViaPayCus,
+		"ConfirmOrder":      testConfirmOrder,
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -399,6 +400,76 @@ func testGetOrderViaPayCus(t *testing.T, database *db.Database) {
 			}
 			if *order != *want {
 				t.Fatalf("GetOrderViaPayCus() = %+v; want %+v", *order, *want)
+			}
+		})
+	}
+}
+
+func testConfirmOrder(t *testing.T, database *db.Database) {
+	type testCase struct {
+		order      *db.Order
+		chargeID   string
+		rawAddress string
+	}
+	tests := map[string]func(*testing.T) testCase{
+		"same address": func(t *testing.T) testCase {
+			campaign, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			if err != nil {
+				t.Fatalf("CreateCampaign() err = %v; want nil", err)
+			}
+			order := db.Order{
+				CampaignID: campaign.ID,
+				Customer:   testCustomer(),
+				Address:    testAddress(),
+				Payment:    testPayment(),
+			}
+			err = database.CreateOrder(&order)
+			if err != nil {
+				t.Fatalf("CreateOrder() err = %v; want nil", err)
+			}
+			return testCase{&order, "chg_888rrr", order.Address.Raw}
+		},
+		"new address": func(t *testing.T) testCase {
+			campaign, err := database.CreateCampaign(time.Now().Add(-7*24*time.Hour), time.Now().Add(10*24*time.Hour), 900)
+			if err != nil {
+				t.Fatalf("CreateCampaign() err = %v; want nil", err)
+			}
+			order := db.Order{
+				CampaignID: campaign.ID,
+				Customer:   testCustomer(),
+				Address:    testAddress(),
+				Payment:    testPayment(),
+			}
+			err = database.CreateOrder(&order)
+			if err != nil {
+				t.Fatalf("CreateOrder() err = %v; want nil", err)
+			}
+			newAddress := `JOHNNY NEW PERSON
+123 NEW STREET
+APT 888
+NEW TOWN NY  12345
+UNITED STATES`
+			return testCase{&order, "chg_888rrr", newAddress}
+		},
+	}
+	for name, setup := range tests {
+		t.Run(name, func(t *testing.T) {
+			defer database.TestReset(t)
+			tc := setup(t)
+
+			err := database.ConfirmOrder(tc.order.ID, tc.rawAddress, tc.chargeID)
+			if err != nil {
+				t.Fatalf("ConfirmOrder() err = %v; want %v", err, nil)
+			}
+			order, err := database.GetOrderViaPayCus(tc.order.Payment.CustomerID)
+			if err != nil {
+				t.Fatalf("GetOrderViaPayCus() err = %v; want %v", err, nil)
+			}
+			if order.Payment.ChargeID != tc.chargeID {
+				t.Fatalf("ChargeID = %v; want %v", order.Payment.ChargeID, tc.chargeID)
+			}
+			if order.Address.Raw != tc.rawAddress {
+				t.Fatalf("Raw Address = %v; want %v", order.Address.Raw, tc.rawAddress)
 			}
 		})
 	}
