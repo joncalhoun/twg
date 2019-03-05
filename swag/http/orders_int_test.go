@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -270,5 +271,189 @@ UNITED STATES`,
 				}
 			})
 		}
+	})
+}
+
+func TestOrderHandler_Confirm_stripeInt(t *testing.T) {
+	if stripeSecretKey == "" {
+		t.Skip("stripe secret key not provided")
+	}
+
+	type checkFn func(*testing.T, *http.Response)
+	hasStatus := func(code int) checkFn {
+		return func(t *testing.T, res *http.Response) {
+			if res.StatusCode != code {
+				t.Fatalf("StatusCode = %d; want %d", res.StatusCode, code)
+			}
+		}
+	}
+	hasBody := func(want string) checkFn {
+		return func(t *testing.T, res *http.Response) {
+			defer res.Body.Close()
+			bodyBytes, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				t.Fatalf("ReadAll() err = %v; want %v", err, nil)
+			}
+			got := strings.TrimSpace(string(bodyBytes))
+			if got != want {
+				t.Fatalf("Body = %v; want %v", got, want)
+			}
+		}
+	}
+	hasLocation := func(want string) checkFn {
+		return func(t *testing.T, res *http.Response) {
+			locURL, err := res.Location()
+			if err != nil {
+				t.Fatalf("Location() err = %v; want %v", err, nil)
+			}
+			gotLoc := locURL.Path
+			if gotLoc != want {
+				t.Fatalf("Redirect location = %s; want %s", gotLoc, want)
+			}
+		}
+	}
+	testOrder := func(campaignID int, customerID string) *db.Order {
+		return &db.Order{
+			ID:         123,
+			CampaignID: campaignID,
+			Address: db.Address{
+				Raw: `JON CALHOUN
+PO BOX 295
+BEDFORD PA  15522
+UNITED STATES`,
+			},
+			Payment: db.Payment{
+				CustomerID: customerID,
+				Source:     "stripe",
+			},
+		}
+	}
+
+	runTest := func(t *testing.T, oh *OrderHandler, formData url.Values, order *db.Order, checks ...checkFn) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/orders/cus_abc123", strings.NewReader(formData.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r = r.WithContext(context.WithValue(r.Context(), "order", order))
+		oh.Confirm(w, r)
+
+		res := w.Result()
+		for _, check := range checks {
+			check(t, res)
+		}
+	}
+
+	t.Run("stripe error when creating charge", func(t *testing.T) {
+		oh := OrderHandler{}
+		campaign := &db.Campaign{
+			ID:    999,
+			Price: 1000,
+		}
+		sc := &stripe.Client{
+			Key: stripeSecretKey,
+		}
+		oh.Stripe.Client = sc
+		stripeCus, err := sc.Customer("tok_chargeCustomerFail", "fail@gopherswag.com")
+		if err != nil {
+			t.Fatalf("Customer() err = %v; want %v", err, nil)
+		}
+		order := testOrder(campaign.ID, stripeCus.ID)
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				if id == campaign.ID {
+					return campaign, nil
+				}
+				return nil, sql.ErrNoRows
+			},
+		}
+		oh.DB = mdb
+
+		formData := url.Values{
+			"address-raw": []string{order.Address.Raw},
+		}
+
+		runTest(t, &oh, formData, order,
+			hasStatus(http.StatusOK),
+			hasBody("Your card was declined."),
+		)
+	})
+
+	t.Run("visa card", func(t *testing.T) {
+		oh := OrderHandler{}
+		campaign := &db.Campaign{
+			ID:    999,
+			Price: 1000,
+		}
+		sc := &stripe.Client{
+			Key: stripeSecretKey,
+		}
+		oh.Stripe.Client = sc
+		stripeCus, err := sc.Customer("tok_visa", "same@gopherswag.com")
+		if err != nil {
+			t.Fatalf("Customer() err = %v; want %v", err, nil)
+		}
+		order := testOrder(campaign.ID, stripeCus.ID)
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				if id == campaign.ID {
+					return campaign, nil
+				}
+				return nil, sql.ErrNoRows
+			},
+			ConfirmOrderFunc: func(gotOrderID int, gotAddress, gotChargeID string) error {
+				return nil
+			},
+		}
+		oh.DB = mdb
+
+		formData := url.Values{
+			"address-raw": []string{order.Address.Raw},
+		}
+
+		runTest(t, &oh, formData, order,
+			hasStatus(http.StatusFound),
+			hasLocation(fmt.Sprintf("/orders/%s", order.Payment.CustomerID)),
+		)
+	})
+
+	t.Run("discover card", func(t *testing.T) {
+		newAddress := `NEW ADDRESS HERE
+123 NEW STREET
+SOME TOWN NY  12345
+UNITED STATES`
+		oh := OrderHandler{}
+		campaign := &db.Campaign{
+			ID:    999,
+			Price: 1000,
+		}
+		sc := &stripe.Client{
+			Key: stripeSecretKey,
+		}
+		oh.Stripe.Client = sc
+		stripeCus, err := sc.Customer("tok_discover", "diff@gopherswag.com")
+		if err != nil {
+			t.Fatalf("Customer() err = %v; want %v", err, nil)
+		}
+		order := testOrder(campaign.ID, stripeCus.ID)
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				if id == campaign.ID {
+					return campaign, nil
+				}
+				return nil, sql.ErrNoRows
+			},
+			ConfirmOrderFunc: func(gotOrderID int, gotAddress, gotChargeID string) error {
+				return nil
+			},
+		}
+		oh.DB = mdb
+
+		formData := url.Values{
+			"address-raw": []string{newAddress},
+		}
+
+		runTest(t, &oh, formData, order,
+			hasStatus(http.StatusFound),
+			hasLocation(fmt.Sprintf("/orders/%s", order.Payment.CustomerID)),
+		)
 	})
 }
