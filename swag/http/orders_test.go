@@ -520,3 +520,88 @@ UNITED STATES`,
 		}
 	})
 }
+
+func TestOrderHandler_Confirm(t *testing.T) {
+	// Cases:
+	// 1. Error getting campaign
+	// 2. Errors creating stripe charge - possibly many, and we should int test this
+	// 3. Error confirming in DB
+	// 4. All good - same address & new address
+	t.Run("same address", func(t *testing.T) {
+		paymentChargeID := "chg_123456"
+		oh := OrderHandler{}
+		campaign := &db.Campaign{
+			ID:    999,
+			Price: 1000,
+		}
+		order := &db.Order{
+			ID:         123,
+			CampaignID: campaign.ID,
+			Address: db.Address{
+				Raw: `JON CALHOUN
+PO BOX 295
+BEDFORD PA  15522
+UNITED STATES`,
+			},
+			Payment: db.Payment{
+				CustomerID: "cus_abc123",
+				Source:     "stripe",
+			},
+		}
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				if id == campaign.ID {
+					return campaign, nil
+				}
+				return nil, sql.ErrNoRows
+			},
+			ConfirmOrderFunc: func(gotOrderID int, gotAddress, gotChargeID string) error {
+				if gotOrderID != order.ID {
+					t.Fatalf("ConfirmOrder() ID = %d; want %d", gotOrderID, order.ID)
+				}
+				if gotAddress != order.Address.Raw {
+					t.Fatalf("ConfirmOrder() Address = %q; want %q", gotAddress, order.Address.Raw)
+				}
+				if gotChargeID != paymentChargeID {
+					t.Fatalf("ConfirmOrder() ChargeID = %v; want %v", gotChargeID, paymentChargeID)
+				}
+				return nil
+			},
+		}
+		oh.DB = mdb
+		sc := &mockStripe{
+			ChargeFunc: func(customerID string, amount int) (*stripe.Charge, error) {
+				if customerID == order.Payment.CustomerID {
+					return &stripe.Charge{
+						ID: paymentChargeID,
+					}, nil
+				}
+				return nil, stripe.Error{}
+			},
+		}
+		oh.Stripe.Client = sc
+
+		formData := url.Values{
+			"address-raw": []string{order.Address.Raw},
+		}
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/orders/cus_abc123", strings.NewReader(formData.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r = r.WithContext(context.WithValue(r.Context(), "order", order))
+		oh.Confirm(w, r)
+
+		res := w.Result()
+		if res.StatusCode != http.StatusFound {
+			t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusFound)
+		}
+		locURL, err := res.Location()
+		if err != nil {
+			t.Fatalf("Location() err = %v; want %v", err, nil)
+		}
+		gotLoc := locURL.Path
+		wantLoc := fmt.Sprintf("/orders/%s", order.Payment.CustomerID)
+		if gotLoc != wantLoc {
+			t.Fatalf("Redirect location = %s; want %s", gotLoc, wantLoc)
+		}
+	})
+}
