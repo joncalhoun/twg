@@ -33,12 +33,14 @@ type OrderHandler struct {
 		CreateOrder(*db.Order) error
 		GetOrderViaPayCus(string) (*db.Order, error)
 		GetCampaign(int) (*db.Campaign, error)
+		ConfirmOrder(orderID int, addressRaw, paymentChargeID string) error
 	}
 	Stripe struct {
 		PublicKey string
 		Client    interface {
 			Customer(token, email string) (*stripe.Customer, error)
 			GetCharge(chargeID string) (*stripe.Charge, error)
+			Charge(customerID string, amount int) (*stripe.Charge, error)
 		}
 	}
 	Templates struct {
@@ -190,4 +192,33 @@ func (oh *OrderHandler) Show(w http.ResponseWriter, r *http.Request) {
 	data.Order.Address = order.Address.Raw
 	data.Campaign.Price = campaign.Price / 100
 	oh.Templates.Review.Execute(w, data)
+}
+
+func (oh *OrderHandler) Confirm(w http.ResponseWriter, r *http.Request) {
+	order := r.Context().Value("order").(*db.Order)
+	campaign, err := oh.DB.GetCampaign(order.CampaignID)
+	if err != nil {
+		oh.Logger.Printf("error retrieving order campaign\n")
+		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
+		return
+	}
+	r.ParseForm()
+	order.Address.Raw = r.PostFormValue("address-raw")
+	chg, err := oh.Stripe.Client.Charge(order.Payment.CustomerID, campaign.Price)
+	if err != nil {
+		if se, ok := err.(stripe.Error); ok {
+			fmt.Fprint(w, se.Message)
+			return
+		}
+		http.Error(w, "Something went wrong processing your card. Please contact me for support - jon@calhoun.io", http.StatusInternalServerError)
+		return
+	}
+	order.Payment.ChargeID = chg.ID
+
+	err = oh.DB.ConfirmOrder(order.ID, order.Address.Raw, order.Payment.ChargeID)
+	if err != nil {
+		http.Error(w, "You were charged, but something went wrong saving your data. Please contact me for support - jon@calhoun.io", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/orders/%s", order.Payment.CustomerID), http.StatusFound)
 }

@@ -92,7 +92,7 @@ func main() {
 	})
 	resourceMux.HandleFunc("/", campaignHandler.ShowActive)
 	resourceMux.Handle("/campaigns/", http.StripPrefix("/campaigns", campaignsMux(campaignHandler.CampaignMw, orderHandler.New, orderHandler.Create)))
-	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux(orderHandler.OrderMw, orderHandler.Show)))
+	resourceMux.Handle("/orders/", http.StripPrefix("/orders", ordersMux(orderHandler.OrderMw, orderHandler.Show, orderHandler.Confirm)))
 
 	port := os.Getenv("SWAG_PORT")
 	if port == "" {
@@ -102,7 +102,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
-func ordersMux(orderMw func(http.HandlerFunc) http.HandlerFunc, showOrder http.HandlerFunc) http.Handler {
+func ordersMux(orderMw func(http.HandlerFunc) http.HandlerFunc, showOrder, confirmOrder http.HandlerFunc) http.Handler {
 	// The order mux expects the order to be set in the context
 	// and the ID to be trimmed from the path.
 	ordMux := http.NewServeMux()
@@ -138,36 +138,4 @@ func campaignsMux(campaignMw func(http.HandlerFunc) http.HandlerFunc, newOrder, 
 	// Trim the ID from the path, set the campaign in the ctx, and call
 	// the cmpMux.
 	return campaignMw(cmpMux.ServeHTTP)
-}
-
-func confirmOrder(w http.ResponseWriter, r *http.Request) {
-	order := r.Context().Value("order").(*db.Order)
-	campaign, err := db.GetCampaign(order.CampaignID)
-	if err != nil {
-		log.Println("error retrieving order campaign")
-		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
-		return
-	}
-	r.ParseForm()
-	order.Address.Raw = r.PostFormValue("address-raw")
-	stripeClient := &stripe.Client{
-		Key: stripeSecretKey,
-	}
-	chg, err := stripeClient.Charge(order.Payment.CustomerID, campaign.Price)
-	if err != nil {
-		if se, ok := err.(stripe.Error); ok {
-			fmt.Fprint(w, se.Message)
-			return
-		}
-		http.Error(w, "Something went wrong processing your card. Please contact me for support - jon@calhoun.io", http.StatusInternalServerError)
-		return
-	}
-	order.Payment.ChargeID = chg.ID
-
-	err = db.DefaultDatabase.ConfirmOrder(order.ID, order.Address.Raw, order.Payment.ChargeID)
-	if err != nil {
-		http.Error(w, "You were charged, but something went wrong saving your data. Please contact me for support - jon@calhoun.io", http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(w, r, fmt.Sprintf("/orders/%s", order.Payment.CustomerID), http.StatusFound)
 }

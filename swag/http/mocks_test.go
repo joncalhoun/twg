@@ -29,6 +29,7 @@ type mockDB struct {
 	GetCampaignFunc       func(int) (*db.Campaign, error)
 	CreateOrderFunc       func(*db.Order) error
 	GetOrderViaPayCusFunc func(string) (*db.Order, error)
+	ConfirmOrderFunc      func(orderID int, addressRaw, paymentChargeID string) error
 }
 
 func (mdb *mockDB) ActiveCampaign() (*db.Campaign, error) {
@@ -47,9 +48,14 @@ func (mdb *mockDB) GetOrderViaPayCus(payCustomerID string) (*db.Order, error) {
 	return mdb.GetOrderViaPayCusFunc(payCustomerID)
 }
 
+func (mdb *mockDB) ConfirmOrder(orderID int, addressRaw, paymentChargeID string) error {
+	return mdb.ConfirmOrderFunc(orderID, addressRaw, paymentChargeID)
+}
+
 type mockStripe struct {
 	CustomerFunc  func(token, email string) (*stripe.Customer, error)
 	GetChargeFunc func(chargeID string) (*stripe.Charge, error)
+	ChargeFunc    func(customerID string, amount int) (*stripe.Charge, error)
 }
 
 func (ms *mockStripe) Customer(token, email string) (*stripe.Customer, error) {
@@ -58,4 +64,8 @@ func (ms *mockStripe) Customer(token, email string) (*stripe.Customer, error) {
 
 func (ms *mockStripe) GetCharge(chargeID string) (*stripe.Charge, error) {
 	return ms.GetChargeFunc(chargeID)
+}
+
+func (ms *mockStripe) Charge(customerID string, amount int) (*stripe.Charge, error) {
+	return ms.ChargeFunc(customerID, amount)
 }
