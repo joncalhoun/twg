@@ -202,8 +202,11 @@ func (oh *OrderHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Something went wrong...", http.StatusInternalServerError)
 		return
 	}
-	r.ParseForm()
-	order.Address.Raw = r.PostFormValue("address-raw")
+	err = r.ParseForm()
+	if err != nil {
+		panic(err)
+	}
+	order.Address.Raw = r.FormValue("address-raw")
 	chg, err := oh.Stripe.Client.Charge(order.Payment.CustomerID, campaign.Price)
 	if err != nil {
 		if se, ok := err.(stripe.Error); ok {
