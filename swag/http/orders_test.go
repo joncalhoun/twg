@@ -524,6 +524,63 @@ UNITED STATES`,
 func TestOrderHandler_Confirm(t *testing.T) {
 	// Cases:
 	// 1. Error getting campaign
+	t.Run("error getting campaign", func(t *testing.T) {
+		oh := OrderHandler{}
+		lr := &logRec{}
+		oh.Logger = lr
+		campaign := &db.Campaign{
+			ID:    999,
+			Price: 1000,
+		}
+		order := &db.Order{
+			ID:         123,
+			CampaignID: campaign.ID,
+			Address: db.Address{
+				Raw: `JON CALHOUN
+PO BOX 295
+BEDFORD PA  15522
+UNITED STATES`,
+			},
+			Payment: db.Payment{
+				CustomerID: "cus_abc123",
+				Source:     "stripe",
+			},
+		}
+		mdb := &mockDB{
+			GetCampaignFunc: func(id int) (*db.Campaign, error) {
+				return nil, sql.ErrNoRows
+			},
+		}
+		oh.DB = mdb
+
+		formData := url.Values{
+			"address-raw": []string{order.Address.Raw},
+		}
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/orders/cus_abc123", strings.NewReader(formData.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r = r.WithContext(context.WithValue(r.Context(), "order", order))
+		oh.Confirm(w, r)
+
+		res := w.Result()
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("StatusCode = %d; want %d", res.StatusCode, http.StatusInternalServerError)
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("ReadAll() err = %v; want %v", err, nil)
+		}
+		got := strings.TrimSpace(string(body))
+		want := "Something went wrong..."
+		if got != want {
+			t.Fatalf("Body = %v; want %v", got, want)
+		}
+		wantLog := "error retrieving order campaign\n"
+		if len(lr.logs) != 1 || lr.logs[0] != wantLog {
+			t.Fatalf("Logs = %v; want %v", lr.logs, []string{wantLog})
+		}
+	})
 	// 2. Errors creating stripe charge - possibly many, and we should int test this
 	// 3. Error confirming in DB
 	// 4. All good - same address & new address
