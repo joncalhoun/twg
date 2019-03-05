@@ -227,3 +227,11 @@ func (db *Database) GetOrderViaPayCus(payCustomerID string) (*Order, error) {
 	}
 	return &ord, nil
 }
+
+func (db *Database) ConfirmOrder(orderID int, addressRaw, paymentChargeID string) error {
+	statement := `UPDATE orders
+	SET adr_raw = $2, pay_charge_id = $3
+	WHERE id = $1`
+	_, err := db.sqlDB.Exec(statement, orderID, addressRaw, paymentChargeID)
+	return err
+}

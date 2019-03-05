@@ -163,10 +163,8 @@ func confirmOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	order.Payment.ChargeID = chg.ID
-	statement := `UPDATE orders
-	SET adr_raw = $2, pay_charge_id = $3
-	WHERE id = $1`
-	_, err = db.DB.Exec(statement, order.ID, order.Address.Raw, order.Payment.ChargeID)
+
+	err = db.DefaultDatabase.ConfirmOrder(order.ID, order.Address.Raw, order.Payment.ChargeID)
 	if err != nil {
 		http.Error(w, "You were charged, but something went wrong saving your data. Please contact me for support - jon@calhoun.io", http.StatusInternalServerError)
 		return
