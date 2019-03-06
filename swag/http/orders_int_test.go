@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
@@ -26,11 +27,15 @@ var (
 func init() {
 	flag.StringVar(&stripeSecretKey, "stripe", "", "stripe secret key for integration testing")
 	flag.Parse()
+
+	if stripeSecretKey == "" {
+		stripeSecretKey = os.Getenv("STRIPE_SECRET_KEY")
+	}
 }
 
 func TestOrderHandler_Create_stripeInt(t *testing.T) {
 	if stripeSecretKey == "" {
-		t.Skip("stripe secret key not provided")
+		t.Skip("Stripe secret key not provided. Use the -stripe flag, or set a value via the STRIPE_SECRET_KEY env variable.")
 	}
 	type checkFn func(*testing.T, *http.Response)
 	hasCode := func(want int) checkFn {
@@ -178,7 +183,7 @@ func TestOrderHandler_Create_stripeInt(t *testing.T) {
 
 func TestOrderHandler_Show_stripeInt(t *testing.T) {
 	if stripeSecretKey == "" {
-		t.Skip("stripe secret key not provided")
+		t.Skip("Stripe secret key not provided. Use the -stripe flag, or set a value via the STRIPE_SECRET_KEY env variable.")
 	}
 
 	t.Run("charged", func(t *testing.T) {
@@ -276,7 +281,7 @@ UNITED STATES`,
 
 func TestOrderHandler_Confirm_stripeInt(t *testing.T) {
 	if stripeSecretKey == "" {
-		t.Skip("stripe secret key not provided")
+		t.Skip("Stripe secret key not provided. Use the -stripe flag, or set a value via the STRIPE_SECRET_KEY env variable.")
 	}
 
 	type checkFn func(*testing.T, *http.Response)
