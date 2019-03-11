@@ -53,39 +53,79 @@ func TestRouter(t *testing.T) {
 		}
 	})
 
-	t.Run("show order", func(t *testing.T) {
+	idMw := func(t *testing.T, idWant string) func(http.HandlerFunc) http.HandlerFunc {
+		return func(next http.HandlerFunc) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				id, path := urlpath.Split(r.URL.Path)
+				if idWant != "" && id != idWant {
+					t.Fatalf("ID = %v; want %v", id, idWant)
+				}
+				r.URL.Path = path
+				next(w, r)
+			}
+		}
+	}
+	failMw := func(t *testing.T) func(http.HandlerFunc) http.HandlerFunc {
+		return func(next http.HandlerFunc) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				t.Fatal("Mw called unexpectedly")
+			}
+		}
+	}
+
+	t.Run("successes", func(t *testing.T) {
 		want := "SUCCESS"
-		orderID := "ord_abc123"
-		router := &Router{
-			AssetDir:        "testdata/",
-			CampaignHandler: &CampaignHandler{},
-			OrderHandler: &RouterOrderHandlerMock{
-				ShowFunc: func(w http.ResponseWriter, r *http.Request) {
-					fmt.Fprint(w, want)
-				},
-				OrderMwFunc: func(next http.HandlerFunc) http.HandlerFunc {
-					return func(w http.ResponseWriter, r *http.Request) {
-						_, path := urlpath.Split(r.URL.Path)
-						r.URL.Path = path
-						next(w, r)
-					}
-				},
+		tests := map[string]func(*testing.T) (r *Router, method, path string){
+			"show order": func(t *testing.T) (*Router, string, string) {
+				orderID := "ord_abc123"
+				return &Router{
+					AssetDir: "testdata/",
+					CampaignHandler: &RouterCampaignHandlerMock{
+						CampaignMwFunc: failMw(t),
+					},
+					OrderHandler: &RouterOrderHandlerMock{
+						ShowFunc: func(w http.ResponseWriter, r *http.Request) {
+							fmt.Fprint(w, want)
+						},
+						OrderMwFunc: idMw(t, orderID),
+					},
+				}, http.MethodGet, fmt.Sprintf("/orders/%v", orderID)
+			},
+			"confirm order": func(t *testing.T) (*Router, string, string) {
+				orderID := "ord_abc123"
+				return &Router{
+					AssetDir: "testdata/",
+					CampaignHandler: &RouterCampaignHandlerMock{
+						CampaignMwFunc: failMw(t),
+					},
+					OrderHandler: &RouterOrderHandlerMock{
+						ConfirmFunc: func(w http.ResponseWriter, r *http.Request) {
+							fmt.Fprint(w, want)
+						},
+						OrderMwFunc: idMw(t, orderID),
+					},
+				}, http.MethodPost, fmt.Sprintf("/orders/%v/confirm", orderID)
 			},
 		}
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				router, method, path := tc(t)
 
-		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/orders/%v", orderID), nil)
-		router.ServeHTTP(w, r)
-		res := w.Result()
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			t.Fatalf("ReadAll() err= %v; want %v", err, nil)
-		}
-		got := string(body)
+				w := httptest.NewRecorder()
+				r := httptest.NewRequest(method, path, nil)
+				router.ServeHTTP(w, r)
+				res := w.Result()
+				defer res.Body.Close()
+				body, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					t.Fatalf("ReadAll() err= %v; want %v", err, nil)
+				}
+				got := string(body)
 
-		if got != want {
-			t.Fatalf("body contents = %v; want %v", got, want)
+				if got != want {
+					t.Fatalf("body contents = %v; want %v", got, want)
+				}
+			})
 		}
 	})
 }
