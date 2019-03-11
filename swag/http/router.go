@@ -7,20 +7,26 @@ import (
 	"github.com/joncalhoun/twg/swag/urlpath"
 )
 
+//go:generate moq -out router_moq_test.go . RouterOrderHandler RouterCampaignHandler
+
+type RouterOrderHandler interface {
+	New(w http.ResponseWriter, r *http.Request)
+	Create(w http.ResponseWriter, r *http.Request)
+	Show(w http.ResponseWriter, r *http.Request)
+	Confirm(w http.ResponseWriter, r *http.Request)
+	OrderMw(next http.HandlerFunc) http.HandlerFunc
+}
+
+type RouterCampaignHandler interface {
+	ShowActive(w http.ResponseWriter, r *http.Request)
+	CampaignMw(next http.HandlerFunc) http.HandlerFunc
+}
+
 type Router struct {
-	AssetDir     string
-	FaviconDir   string
-	OrderHandler interface {
-		New(w http.ResponseWriter, r *http.Request)
-		Create(w http.ResponseWriter, r *http.Request)
-		Show(w http.ResponseWriter, r *http.Request)
-		Confirm(w http.ResponseWriter, r *http.Request)
-		OrderMw(next http.HandlerFunc) http.HandlerFunc
-	}
-	CampaignHandler interface {
-		ShowActive(w http.ResponseWriter, r *http.Request)
-		CampaignMw(next http.HandlerFunc) http.HandlerFunc
-	}
+	AssetDir        string
+	FaviconDir      string
+	OrderHandler    RouterOrderHandler
+	CampaignHandler RouterCampaignHandler
 
 	once    sync.Once
 	handler http.Handler
