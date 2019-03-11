@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	. "github.com/joncalhoun/twg/swag/http"
+	"github.com/joncalhoun/twg/swag/urlpath"
 )
 
 func TestRouter(t *testing.T) {
@@ -49,6 +50,42 @@ func TestRouter(t *testing.T) {
 					t.Fatalf("body contents = %v; want %v", got, want)
 				}
 			})
+		}
+	})
+
+	t.Run("show order", func(t *testing.T) {
+		want := "SUCCESS"
+		orderID := "ord_abc123"
+		router := &Router{
+			AssetDir:        "testdata/",
+			CampaignHandler: &CampaignHandler{},
+			OrderHandler: &RouterOrderHandlerMock{
+				ShowFunc: func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, want)
+				},
+				OrderMwFunc: func(next http.HandlerFunc) http.HandlerFunc {
+					return func(w http.ResponseWriter, r *http.Request) {
+						_, path := urlpath.Split(r.URL.Path)
+						r.URL.Path = path
+						next(w, r)
+					}
+				},
+			},
+		}
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/orders/%v", orderID), nil)
+		router.ServeHTTP(w, r)
+		res := w.Result()
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("ReadAll() err= %v; want %v", err, nil)
+		}
+		got := string(body)
+
+		if got != want {
+			t.Fatalf("body contents = %v; want %v", got, want)
 		}
 	})
 }
