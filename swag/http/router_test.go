@@ -106,6 +106,50 @@ func TestRouter(t *testing.T) {
 					},
 				}, http.MethodPost, fmt.Sprintf("/orders/%v/confirm", orderID)
 			},
+			"new order": func(t *testing.T) (*Router, string, string) {
+				campaignID := "cmp_abc123"
+				return &Router{
+					AssetDir: "testdata/",
+					CampaignHandler: &RouterCampaignHandlerMock{
+						CampaignMwFunc: idMw(t, campaignID),
+					},
+					OrderHandler: &RouterOrderHandlerMock{
+						NewFunc: func(w http.ResponseWriter, r *http.Request) {
+							fmt.Fprint(w, want)
+						},
+						OrderMwFunc: failMw(t),
+					},
+				}, http.MethodGet, fmt.Sprintf("/campaigns/%v/orders/new", campaignID)
+			},
+			"create order": func(t *testing.T) (*Router, string, string) {
+				campaignID := "cmp_abc123"
+				return &Router{
+					AssetDir: "testdata/",
+					CampaignHandler: &RouterCampaignHandlerMock{
+						CampaignMwFunc: idMw(t, campaignID),
+					},
+					OrderHandler: &RouterOrderHandlerMock{
+						CreateFunc: func(w http.ResponseWriter, r *http.Request) {
+							fmt.Fprint(w, want)
+						},
+						OrderMwFunc: failMw(t),
+					},
+				}, http.MethodPost, fmt.Sprintf("/campaigns/%v/orders/", campaignID)
+			},
+			"show active campaign": func(t *testing.T) (*Router, string, string) {
+				return &Router{
+					AssetDir: "testdata/",
+					CampaignHandler: &RouterCampaignHandlerMock{
+						ShowActiveFunc: func(w http.ResponseWriter, r *http.Request) {
+							fmt.Fprint(w, want)
+						},
+						CampaignMwFunc: failMw(t),
+					},
+					OrderHandler: &RouterOrderHandlerMock{
+						OrderMwFunc: failMw(t),
+					},
+				}, http.MethodGet, "/"
+			},
 		}
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
