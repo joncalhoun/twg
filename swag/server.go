@@ -56,7 +56,7 @@ func init() {
 }
 
 func main() {
-	defer db.DB.Close()
+	defer db.DefaultDatabase.Close()
 
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 	stripeClient := &stripe.Client{

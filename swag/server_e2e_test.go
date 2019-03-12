@@ -3,7 +3,10 @@
 package main
 
 import (
+	"database/sql"
+	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -19,25 +22,37 @@ var (
 	longSleep     = 4 * medSleep
 )
 
+var (
+	psqlURL string
+)
+
 func init() {
 	stripeSecretKey = "sk_test_qrrEUOnYjJjybMTEsQnABuzE"
 	stripePublicKey = "pk_test_pfEqL5GDjl8h4pXjv8CWpi80"
+
+	flag.StringVar(&psqlURL, "psql", "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable", "The url to a postgres database to be used for testing. Also settable via the PSQL_URL env variable")
+	flag.Parse()
+
+	envPsqlURL := os.Getenv("PSQL_URL")
+	if envPsqlURL != "" {
+		psqlURL = envPsqlURL
+	}
 }
 
-func resetDB(t *testing.T) {
-	_, err := db.DB.Exec("DELETE FROM orders")
+func resetDB(t *testing.T, sqlDB *sql.DB) {
+	_, err := sqlDB.Exec("DELETE FROM orders")
 	if err != nil {
 		t.Fatalf("DELETE FROM orders err = %v; want nil", err)
 	}
-	_, err = db.DB.Exec("DELETE FROM campaigns")
+	_, err = sqlDB.Exec("DELETE FROM campaigns")
 	if err != nil {
 		t.Fatalf("DELETE FROM campaigns err = %v; want nil", err)
 	}
 }
 
-func count(t *testing.T, table string) int {
+func count(t *testing.T, sqlDB *sql.DB, table string) int {
 	var n int
-	err := db.DB.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&n)
+	err := sqlDB.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&n)
 	if err != nil {
 		t.Fatalf("Scan() err = %v; want nil", err)
 	}
@@ -45,7 +60,12 @@ func count(t *testing.T, table string) int {
 }
 
 func TestOrder(t *testing.T) {
-	resetDB(t)
+	sqlDB, err := sql.Open("postgres", psqlURL)
+	if err != nil {
+		t.Fatalf("Open() err = %v; want %v", err, nil)
+	}
+	defer sqlDB.Close()
+	resetDB(t, sqlDB)
 
 	driver := agouti.ChromeDriver()
 	if err := driver.Start(); err != nil {
@@ -72,7 +92,7 @@ func TestOrder(t *testing.T) {
 		t.Fatalf("Click() err = %v; want nil", err)
 	}
 
-	numOrders := count(t, "orders")
+	numOrders := count(t, sqlDB, "orders")
 
 	button := page.FindByButton("Review your order →")
 	n, err := button.Count()
@@ -80,7 +100,7 @@ func TestOrder(t *testing.T) {
 		t.Fatalf("FindByButton() n = %d, err = %v; want 1, nil", n, err)
 	}
 
-	if count(t, "orders") != numOrders {
+	if count(t, sqlDB, "orders") != numOrders {
 		t.Fatal("Order count increased on invalid order form")
 	}
 
@@ -139,7 +159,7 @@ func TestOrder(t *testing.T) {
 	}
 	time.Sleep(longSleep)
 
-	diff := count(t, "orders") - numOrders
+	diff := count(t, sqlDB, "orders") - numOrders
 	if diff != 1 {
 		t.Fatalf("Order count should have increased by 1. Instead it changed by %d", diff)
 	}

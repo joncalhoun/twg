@@ -8,24 +8,8 @@ import (
 )
 
 var (
-	DB *tempDB
-
 	DefaultDatabase = &Database{}
 )
-
-type tempDB struct{}
-
-func (tdb *tempDB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return DefaultDatabase.sqlDB.Exec(query, args...)
-}
-
-func (tdb *tempDB) QueryRow(query string, args ...interface{}) *sql.Row {
-	return DefaultDatabase.sqlDB.QueryRow(query, args...)
-}
-
-func (tdb *tempDB) Close() error {
-	return DefaultDatabase.Close()
-}
 
 const (
 	defaultURL = "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable"
