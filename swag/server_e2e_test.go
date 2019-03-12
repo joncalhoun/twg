@@ -4,8 +4,9 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -22,21 +23,9 @@ var (
 	longSleep     = 4 * medSleep
 )
 
-var (
-	psqlURL string
-)
-
 func init() {
 	stripeSecretKey = "sk_test_qrrEUOnYjJjybMTEsQnABuzE"
 	stripePublicKey = "pk_test_pfEqL5GDjl8h4pXjv8CWpi80"
-
-	flag.StringVar(&psqlURL, "psql", "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable", "The url to a postgres database to be used for testing. Also settable via the PSQL_URL env variable")
-	flag.Parse()
-
-	envPsqlURL := os.Getenv("PSQL_URL")
-	if envPsqlURL != "" {
-		psqlURL = envPsqlURL
-	}
 }
 
 func resetDB(t *testing.T, sqlDB *sql.DB) {
@@ -62,10 +51,26 @@ func count(t *testing.T, sqlDB *sql.DB, table string) int {
 func TestOrder(t *testing.T) {
 	sqlDB, err := sql.Open("postgres", psqlURL)
 	if err != nil {
-		t.Fatalf("Open() err = %v; want %v", err, nil)
+		t.Fatalf("sql.Open() err = %v; want %v", err, nil)
 	}
-	defer sqlDB.Close()
 	resetDB(t, sqlDB)
+	database, err := db.Open(db.WithSqlDB(sqlDB))
+	if err != nil {
+		t.Fatalf("db.Open() err = %v; want %v", err, nil)
+	}
+	defer database.Close()
+	database.CreateCampaign(time.Now(), time.Now().Add(time.Hour), 1200)
+
+	handler := setupHandler(database)
+	port := os.Getenv("SWAG_PORT")
+	if port == "" {
+		port = "3000"
+	}
+	addr := fmt.Sprintf(":%s", port)
+	go func() {
+		log.Fatal(http.ListenAndServe(addr, handler))
+	}()
+	time.Sleep(medSleep)
 
 	driver := agouti.ChromeDriver()
 	if err := driver.Start(); err != nil {
@@ -79,9 +84,6 @@ func TestOrder(t *testing.T) {
 	}
 	defer page.CloseWindow()
 	page.Size(1840, 1000)
-
-	go main()
-	time.Sleep(medSleep)
 
 	err = page.Navigate("http://localhost:3000")
 	if err != nil {
@@ -173,7 +175,7 @@ func TestOrder(t *testing.T) {
 	t.Logf("URL: %s", url)
 	t.Logf("Stripe customer ID: %s", stripeCusID)
 
-	cus, err := db.GetOrderViaPayCus(stripeCusID)
+	cus, err := database.GetOrderViaPayCus(stripeCusID)
 	if err != nil {
 		t.Fatalf("GetOrderViaPayCus() err = %v; want nil", err)
 	}
@@ -201,7 +203,7 @@ func TestOrder(t *testing.T) {
 		t.Fatalf("HTML() = %q; want substring %q", gotText, wantText)
 	}
 
-	cus, err = db.GetOrderViaPayCus(stripeCusID)
+	cus, err = database.GetOrderViaPayCus(stripeCusID)
 	if err != nil {
 		t.Fatalf("GetOrderViaPayCus() err = %v; want nil", err)
 	}

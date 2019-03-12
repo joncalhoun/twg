@@ -7,38 +7,41 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var (
-	DefaultDatabase = &Database{}
-)
-
 const (
 	defaultURL = "postgres://postgres@127.0.0.1:5432/swag_dev?sslmode=disable"
 )
 
-func init() {
-	Init(defaultURL)
+var timeNow = time.Now
+
+type DBOption func(*Database) error
+
+func WithSqlDB(sqlDB *sql.DB) DBOption {
+	return func(db *Database) error {
+		db.sqlDB = sqlDB
+		return nil
+	}
 }
 
-// Init will open a connection to the provided psql DB and then set the
-// default database to that connection.
-func Init(psqlURL string) error {
-	database, err := Open(psqlURL)
-	if err != nil {
-		return err
+func WithPsqlURL(psqlURL string) DBOption {
+	return func(db *Database) error {
+		sqlDB, err := sql.Open("postgres", psqlURL)
+		if err != nil {
+			return err
+		}
+		option := WithSqlDB(sqlDB)
+		return option(db)
 	}
-	DefaultDatabase = database
-	return nil
 }
 
 // Open will create a new Database with the provided psqlURL
-func Open(psqlURL string) (*Database, error) {
-	db, err := sql.Open("postgres", psqlURL)
-	if err != nil {
-		return nil, err
+func Open(options ...DBOption) (*Database, error) {
+	db := &Database{}
+	for _, option := range options {
+		if err := option(db); err != nil {
+			return nil, err
+		}
 	}
-	return &Database{
-		sqlDB: db,
-	}, nil
+	return db, nil
 }
 
 type Campaign struct {
@@ -54,10 +57,6 @@ type Database struct {
 
 func (db *Database) Close() error {
 	return db.sqlDB.Close()
-}
-
-func CreateCampaign(start, end time.Time, price int) (*Campaign, error) {
-	return DefaultDatabase.CreateCampaign(start, end, price)
 }
 
 func (db *Database) CreateCampaign(start, end time.Time, price int) (*Campaign, error) {
@@ -78,12 +77,6 @@ func (db *Database) CreateCampaign(start, end time.Time, price int) (*Campaign, 
 	}, nil
 }
 
-var timeNow = time.Now
-
-func ActiveCampaign() (*Campaign, error) {
-	return DefaultDatabase.ActiveCampaign()
-}
-
 func (db *Database) ActiveCampaign() (*Campaign, error) {
 	statement := `
 	SELECT * FROM campaigns
@@ -96,10 +89,6 @@ func (db *Database) ActiveCampaign() (*Campaign, error) {
 		return nil, err
 	}
 	return &camp, nil
-}
-
-func GetCampaign(id int) (*Campaign, error) {
-	return DefaultDatabase.GetCampaign(id)
 }
 
 func (db *Database) GetCampaign(id int) (*Campaign, error) {
@@ -145,10 +134,6 @@ type Order struct {
 	Payment    Payment
 }
 
-func CreateOrder(order *Order) error {
-	return DefaultDatabase.CreateOrder(order)
-}
-
 func (db *Database) CreateOrder(order *Order) error {
 	statement := `
 	INSERT INTO orders (
@@ -178,10 +163,6 @@ func (db *Database) CreateOrder(order *Order) error {
 		return err
 	}
 	return nil
-}
-
-func GetOrderViaPayCus(payCustomerID string) (*Order, error) {
-	return DefaultDatabase.GetOrderViaPayCus(payCustomerID)
 }
 
 func (db *Database) GetOrderViaPayCus(payCustomerID string) (*Order, error) {

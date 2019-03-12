@@ -24,14 +24,7 @@ func init() {
 // timing such as a campaign that starts at exactly now or ends at exactly
 // now.
 func TestActiveCampaign_specificTiming(t *testing.T) {
-	// Makes sure we don't accidentally use the global DefaultDatabase
-	tmp := DefaultDatabase
-	DefaultDatabase = nil
-	defer func() {
-		DefaultDatabase = tmp
-	}()
-
-	database, err := Open(testURL)
+	database, err := Open(WithPsqlURL(testURL))
 	if err != nil {
 		t.Fatalf("Open() err = %v; want nil", err)
 	}

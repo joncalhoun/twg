@@ -26,14 +26,7 @@ func init() {
 }
 
 func TestDatabase(t *testing.T) {
-	// Makes sure we don't accidentally use the global DefaultDatabase
-	tmp := db.DefaultDatabase
-	db.DefaultDatabase = nil
-	defer func() {
-		db.DefaultDatabase = tmp
-	}()
-
-	database, err := db.Open(testURL)
+	database, err := db.Open(db.WithPsqlURL(testURL))
 	if err != nil {
 		t.Fatalf("Open() err = %v; want nil", err)
 	}
