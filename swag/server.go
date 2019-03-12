@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/joncalhoun/twg/form"
 	"github.com/joncalhoun/twg/stripe"
 	"github.com/joncalhoun/twg/swag/db"
-	swaghttp "github.com/joncalhoun/twg/swag/http"
+	"github.com/joncalhoun/twg/swag/http"
 )
 
 var (
@@ -95,14 +94,14 @@ func setupHandler(database *db.Database) http.Handler {
 	stripeClient := &stripe.Client{
 		Key: stripeSecretKey,
 	}
-	campaignHandler := &swaghttp.CampaignHandler{}
+	campaignHandler := &http.CampaignHandler{}
 	campaignHandler.DB = database
 	campaignHandler.Logger = logger
 	campaignHandler.Templates.Show = templates.Campaigns.Show
 	campaignHandler.Templates.Ended = template.Must(template.ParseFiles("./templates/ended_campaign.gohtml"))
 	campaignHandler.TimeNow = time.Now
 
-	orderHandler := &swaghttp.OrderHandler{}
+	orderHandler := &http.OrderHandler{}
 	orderHandler.DB = database
 	orderHandler.Logger = logger
 	orderHandler.Stripe.PublicKey = stripePublicKey
@@ -110,7 +109,7 @@ func setupHandler(database *db.Database) http.Handler {
 	orderHandler.Templates.New = templates.Orders.New
 	orderHandler.Templates.Review = templates.Orders.Review
 
-	router := &swaghttp.Router{
+	router := &http.Router{
 		AssetDir:        "./assets/",
 		FaviconDir:      "./assets/img/",
 		OrderHandler:    orderHandler,

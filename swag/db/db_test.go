@@ -25,10 +25,34 @@ func init() {
 	}
 }
 
-func TestDatabase(t *testing.T) {
-	database, err := db.Open(db.WithPsqlURL(testURL))
+func resetDB(t *testing.T, sqlDB *sql.DB) {
+	_, err := sqlDB.Exec("DELETE FROM orders")
 	if err != nil {
-		t.Fatalf("Open() err = %v; want nil", err)
+		t.Fatalf("DELETE FROM orders err = %v; want nil", err)
+	}
+	_, err = sqlDB.Exec("DELETE FROM campaigns")
+	if err != nil {
+		t.Fatalf("DELETE FROM campaigns err = %v; want nil", err)
+	}
+}
+
+func countDB(t *testing.T, sqlDB *sql.DB, table string) int {
+	var n int
+	err := sqlDB.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&n)
+	if err != nil {
+		t.Fatalf("Scan() err = %v; want nil", err)
+	}
+	return n
+}
+
+func TestDatabase(t *testing.T) {
+	sqlDB, err := sql.Open("postgres", testURL)
+	if err != nil {
+		t.Fatalf("sql.Open() err = %v; want %v", err, nil)
+	}
+	database, err := db.Open(db.WithSqlDB(sqlDB))
+	if err != nil {
+		t.Fatalf("db.Open() err = %v; want %v", err, nil)
 	}
 	defer database.Close()
 
@@ -42,7 +66,7 @@ func TestDatabase(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			database.TestReset(t)
+			resetDB(t, sqlDB)
 			tc(t, database)
 		})
 	}

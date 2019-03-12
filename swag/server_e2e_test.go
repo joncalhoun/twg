@@ -6,13 +6,13 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/joncalhoun/twg/swag/db"
+	"github.com/joncalhoun/twg/swag/http"
 	"github.com/sclevine/agouti"
 )
 
