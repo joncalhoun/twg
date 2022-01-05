@@ -1,0 +1,6 @@
+tasks:
+  - init: go mod verify
+
+vscode:
+  extensions:
+    - golang.go
